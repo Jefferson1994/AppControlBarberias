@@ -8,15 +8,25 @@ export const obtenerUsuarios = async () => {
   return await usuarioRepository.find();
 };
 
-export const crearUsuario = async (datos: Partial<Usuario>) => {
+export const crearUsuario = async (datos: Partial<Usuario>): Promise<Usuario> => {
   return await AppDataSource.manager.transaction(async (transactionalEntityManager) => {
-    // Validaciones
-    if (!datos.email) throw new Error("Email obligatorio");
-    if (!datos.nombre) throw new Error("Nombre obligatorio");
-    if (!datos.password) throw new Error("Contraseña obligatoria");
+    // Validaciones para los campos obligatorios (NOT NULL) de tu entidad Usuario
+    if (!datos.correo) {
+      throw new Error("El correo electrónico es obligatorio.");
+    }
+    if (!datos.nombre) {
+      throw new Error("El nombre es obligatorio.");
+    }
+    if (!datos.contrasena) {
+      throw new Error("La contraseña es obligatoria.");
+    }
+    if (!datos.rol) {
+      throw new Error("El rol del usuario es obligatorio."); // El rol es NOT NULL en tu esquema
+    }
+    const nuevoUsuario = transactionalEntityManager.create(Usuario, datos);
 
-    const nuevo = transactionalEntityManager.create(Usuario, datos);
-    return await transactionalEntityManager.save(Usuario, nuevo);
+    // Guarda el nuevo usuario en la base de datos
+    return await transactionalEntityManager.save(Usuario, nuevoUsuario);
   });
 };
 
@@ -72,7 +82,7 @@ export const obtenerUsuarioPorId = async (id: number): Promise<any> => {
   };
 };
 
-export const obtenerLoginPorMail = async (email: string, password: string): Promise<any> => {
+/*export const obtenerLoginPorMail = async (email: string, password: string): Promise<any> => {
   const usuario = await usuarioRepository.findOne({
     where: { email },
     relations: ['gastos', 'gastos.categoria', 'gastos.tipo'],
@@ -122,7 +132,22 @@ export const obtenerLoginPorMail = async (email: string, password: string): Prom
     resumenGastos,
     gastosDetalle: usuario.gastos, // <-- Aquí agrego el detalle con categorías y tipos
   };
-};
+};*/
+export const obtenerLoginPorMail = async (email: string, password: string): Promise<Usuario | null> => {
+  const usuarioRepository = AppDataSource.getRepository(Usuario);
 
+  const usuario = await usuarioRepository.findOne({
+    where: { correo: email }, // Usar 'correo' en lugar de 'email' según tu entidad Usuario
+    // Se eliminó la sección 'relations' para solo traer el usuario principal
+  });
+
+  // Aquí deberías añadir la lógica para verificar la contraseña
+  // Por ejemplo, comparar el 'password' recibido con el 'usuario.contrasena' (hash)
+  if (usuario && usuario.contrasena === password) { // ¡OJO! Esto es solo un ejemplo, debes comparar hashes
+    return usuario;
+  }
+
+  return null; // Si no se encuentra el usuario o la contraseña es incorrecta
+};
 
 

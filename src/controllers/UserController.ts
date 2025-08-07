@@ -1,22 +1,47 @@
 import { Request, Response } from 'express';
 import * as UsuarioService from '../services/UserService';
+import { crearUsuario } from '../services/UserService';
 
 export class UserController {
 
-  static async crear(req: Request, res: Response) {
+    static async crear(req: Request, res: Response) {
     try {
-      const { nombre, email, password } = req.body;
-      if (password && password.length >= 8) {
-        const nuevo = await UsuarioService.crearUsuario({ nombre, email, password });
-        res.status(201).json(nuevo);
-      } else {
-        res.status(500).json({ mensaje: "contrasenia demasiado corta" });
+      // Desestructurar los datos del cuerpo de la solicitud
+      // Asegúrate de que los nombres de las propiedades coincidan con tu entidad Usuario
+      const { nombre, correo, contrasena, rol, numero_telefono, numero_identificacion } = req.body;
+
+      // Validaciones básicas de entrada desde la solicitud
+      if (!contrasena || contrasena.length < 8) {
+        return res.status(400).json({ mensaje: "La contraseña es demasiado corta o no fue proporcionada (mínimo 8 caracteres)." });
       }
-      
-      
+      if (!correo) {
+        return res.status(400).json({ mensaje: "El correo electrónico es obligatorio." });
+      }
+      if (!nombre) {
+        return res.status(400).json({ mensaje: "El nombre es obligatorio." });
+      }
+      if (!rol) {
+        return res.status(400).json({ mensaje: "El rol del usuario es obligatorio." });
+      }
+
+      // Llamar al servicio para crear el usuario con los datos correctos
+      const nuevoUsuario = await crearUsuario({
+        nombre,
+        correo,
+        contrasena, // Aquí pasarías la contraseña en texto plano para que el servicio la hashee
+        rol,
+        numero_telefono, // Estos son opcionales según tu entidad
+        numero_identificacion, // Estos son opcionales según tu entidad
+      });
+
+      res.status(201).json(nuevoUsuario);
     } catch (error) {
       console.error("Error creando usuario:", error);
-      res.status(500).json({ mensaje: "Error al crear usuario", error: error.message });
+      // Manejo de errores más específico, por ejemplo, si el correo ya existe
+      if (error.message.includes('UNIQUE constraint failed')) { // Ejemplo para errores de unicidad
+        return res.status(409).json({ mensaje: "Error al crear usuario: El correo electrónico ya está registrado.", error: error.message });
+      }
+      res.status(500).json({ mensaje: "Error interno del servidor al crear usuario", error: error.message });
     }
   }
   

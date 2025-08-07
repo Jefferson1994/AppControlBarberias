@@ -1,7 +1,7 @@
 import express from "express";
 import "reflect-metadata";
 import { AppDataSource } from "./config/data-source";
-//import userRoutes from "./routes/user.routes";
+import userRoutes from "./routes/user.routes";
 //import gatosRoute from "./routes/gasto.routes";
 import cors from "cors";
 
@@ -15,7 +15,7 @@ AppDataSource.initialize()
     console.log("Base de datos conectada");
     await AppDataSource.runMigrations(); 
 
-    //app.use("/api", userRoutes);
+    app.use("/api", userRoutes);
     //app.use("/api", gatosRoute);
 
     app.listen(3000, () => {
