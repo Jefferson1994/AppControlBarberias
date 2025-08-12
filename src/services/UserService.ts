@@ -23,6 +23,7 @@ export const crearUsuario = async (datos: Partial<Usuario>): Promise<Usuario> =>
     if (!datos.rol) {
       throw new Error("El rol del usuario es obligatorio."); // El rol es NOT NULL en tu esquema
     }
+
     const nuevoUsuario = transactionalEntityManager.create(Usuario, datos);
 
     // Guarda el nuevo usuario en la base de datos

@@ -13,7 +13,7 @@ import { Servicio } from '../entities/Servicio';
 
 
 //cadeana local
-export const AppDataSource = new DataSource({
+/*export const AppDataSource = new DataSource({
   type: 'mssql',
   host: 'localhost', // o LAPTOP-UA0JFMK2
   port: 1433,
@@ -29,26 +29,34 @@ export const AppDataSource = new DataSource({
     encrypt: false,
     enableArithAbort: true,
   },
-});
+});*/
 
-// cadena para desplegar en servidor ahora local
 
-/*
 export const AppDataSource = new DataSource({
   type: 'mssql',
-  host: 'sql1002.site4now.net',
-  port: 1433, // Puerto predeterminado para SQL Server
-  username: 'db_ab9b38_pruebasjeff_admin', // Usuario
-  password: 'J3FF1994jsv12345', // Contraseña
-  database: 'BaseAppControlFinancieroBaberia', // Nombre de la base de datos
-  synchronize: true, // Sincroniza las entidades con la base de datos
-  logging: false, // Log de consultas SQL
-  entities: [Usuario, Caja, Cliente, DetalleFactura,Empleado,Factura,
-    MetodoPago,MovimientoCaja,Negocio,Producto,Servicio
-
-  ]
+  host: 'SQL1004.site4now.net', // Actualizado según "Data Source"
+  port: 1433, // Puerto predeterminado para SQL Server, generalmente 1433
+  username: 'db_abced7_jeff1994jsv_admin', // Actualizado según "User Id"
+  password: 'J3FF1994jsv123', // Contraseña confirmada
+  database: 'db_abced7_jeff1994jsv', // Actualizado según "Initial Catalog"
+  synchronize: true, // Sincroniza las entidades con la base de datos (usar con precaución en producción)
+  logging: false, // Desactiva el log de consultas SQL en la consola
+  entities: [
+    Usuario,
+    Caja,
+    Cliente,
+    DetalleFactura,
+    Empleado,
+    Factura,
+    MetodoPago,
+    MovimientoCaja,
+    Negocio,
+    Producto,
+    Servicio
+  ],
   options: {
-    encrypt: true, // Activar encriptación si es necesario
+    encrypt: true, // Activar encriptación para conexiones a SQL Azure, o si tu servidor lo requiere
+    trustServerCertificate: true, // Cambiar a false en producción y proporcionar certificados CA válidos
     enableArithAbort: true, // Habilita la validación de errores aritméticos
   },
-});*/
+});

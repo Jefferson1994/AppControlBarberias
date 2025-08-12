@@ -4,7 +4,7 @@ import { crearUsuario } from '../services/UserService';
 
 export class UserController {
 
-    static async crear(req: Request, res: Response) {
+  static async crear(req: Request, res: Response) {
     try {
       // Desestructurar los datos del cuerpo de la solicitud
       // Asegúrate de que los nombres de las propiedades coincidan con tu entidad Usuario
@@ -34,7 +34,14 @@ export class UserController {
         numero_identificacion, // Estos son opcionales según tu entidad
       });
 
-      res.status(201).json(nuevoUsuario);
+      // Prepara el objeto de respuesta para el cliente, excluyendo la contraseña
+      const usuarioParaRespuesta = { ...nuevoUsuario };
+      delete usuarioParaRespuesta.contrasena; // Elimina la contraseña (hasheada) del objeto de respuesta
+
+      res.status(201).json({
+        mensaje: "Usuario creado correctamente. Por favor, inicia sesión.", // Mensaje de éxito
+        usuario: usuarioParaRespuesta // Devuelve el usuario sin la contraseña
+      });
     } catch (error) {
       console.error("Error creando usuario:", error);
       // Manejo de errores más específico, por ejemplo, si el correo ya existe
