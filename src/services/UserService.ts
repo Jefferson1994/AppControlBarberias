@@ -1,6 +1,6 @@
 import { AppDataSource } from '../config/data-source';
 import { Usuario } from '../entities/Usuario';
-import bcrypt from 'bcrypt';
+//import bcrypt from 'bcrypt';
 
 const usuarioRepository = AppDataSource.getRepository(Usuario);
 
@@ -35,7 +35,7 @@ export const crearUsuario = async (datos: Partial<Usuario>): Promise<Usuario> =>
 
 type TipoResumen = "ingresos" | "egresos";
 
-export const obtenerUsuarioPorId = async (id: number): Promise<any> => {
+/*export const obtenerUsuarioPorId = async (id: number): Promise<any> => {
   const usuario = await usuarioRepository.findOne({
     where: { id },
     relations: ['gastos', 'gastos.categoria', 'gastos.tipo'],
