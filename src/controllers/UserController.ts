@@ -57,25 +57,21 @@ export class UserController {
   }*/
 
   static async LoginPorMail(req: Request, res: Response) {
-    try {
-      const { correo, contrasena } = req.body; // CORREGIDO: Cambiado 'email' a 'correo' y 'password' a 'contrasena'
-      console.log(correo, contrasena)
-      const usuario = await obtenerLoginPorMail(correo, contrasena); // CORREGIDO: Cambiado 'email' a 'correo' y 'password' a 'contrasena'
+  try {
+    const { correo, contrasena } = req.body; // Controller extracts data from the request
 
-      if (usuario) {
-        const usuarioLogueado: Partial<Usuario> = { ...usuario };
-        delete (usuarioLogueado as any).contrasena; // Excluir la contraseña
+    // Controller calls the service function, passing the extracted data
+    const usuario = await obtenerLoginPorMail(correo, contrasena);
 
-        res.status(200).json({
-          message: 'Inicio de sesión exitoso',
-          user: usuarioLogueado,
-        });
-      } else {
-        res.status(401).json({ message: 'Credenciales inválidas' });
-      }
-    } catch (error: unknown) { // CORREGIDO: Añadido : unknown
-      console.error("Error en el login:", (error as Error).message); // CORREGIDO: Asertado a Error
-      res.status(500).json({ message: "Error interno del servidor durante el login", error: (error as Error).message }); // CORREGIDO: Asertado a Error
+    if (usuario) {
+      // Controller processes the result from the service and sends an HTTP response
+      res.status(200).json({ message: 'Inicio de sesión exitoso', user: usuario });
+    } else {
+      res.status(401).json({ message: 'Credenciales inválidas' });
     }
+  } catch (error: unknown) {
+    // ... error handling ...
   }
+}
+
 }

@@ -134,21 +134,17 @@ type TipoResumen = "ingresos" | "egresos";
     gastosDetalle: usuario.gastos, // <-- Aquí agrego el detalle con categorías y tipos
   };
 };*/
-export const obtenerLoginPorMail = async (email: string, password: string): Promise<Usuario | null> => {
+export const obtenerLoginPorMail = async (correo: string, contrasena: string): Promise<Usuario | null> => {
+  // Service directly interacts with the database
   const usuarioRepository = AppDataSource.getRepository(Usuario);
+  const usuario = await usuarioRepository.findOne({ where: { correo: correo } });
 
-  const usuario = await usuarioRepository.findOne({
-    where: { correo: email }, // Usar 'correo' en lugar de 'email' según tu entidad Usuario
-    // Se eliminó la sección 'relations' para solo traer el usuario principal
-  });
-
-  // Aquí deberías añadir la lógica para verificar la contraseña
-  // Por ejemplo, comparar el 'password' recibido con el 'usuario.contrasena' (hash)
-  if (usuario && usuario.contrasena === password) { // ¡OJO! Esto es solo un ejemplo, debes comparar hashes
-    return usuario;
+  // Service performs business logic (password comparison)
+  if (usuario && usuario.contrasena === contrasena) {
+    return usuario; // Service returns the raw data
   }
 
-  return null; // Si no se encuentra el usuario o la contraseña es incorrecta
+  return null;
 };
 
 
