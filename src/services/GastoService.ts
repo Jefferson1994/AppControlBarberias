@@ -1,4 +1,4 @@
-import { AppDataSource } from '../config/data-source';
+/*import { AppDataSource } from '../config/data-source';
 import { Gasto } from '../entities/Gasto';
 import { TipoGasto } from '../entities/TipoGasto';
 
