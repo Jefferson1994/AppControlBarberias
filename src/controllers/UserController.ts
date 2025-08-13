@@ -36,7 +36,7 @@ export class UserController {
 
       // Prepara el objeto de respuesta para el cliente, excluyendo la contraseña
       const usuarioParaRespuesta = { ...nuevoUsuario };
-      delete usuarioParaRespuesta.contrasena; // Elimina la contraseña (hasheada) del objeto de respuesta
+      //delete usuarioParaRespuesta.contrasena; // Elimina la contraseña (hasheada) del objeto de respuesta
 
       res.status(201).json({
         mensaje: "Usuario creado correctamente. Por favor, inicia sesión.", // Mensaje de éxito
@@ -51,36 +51,28 @@ export class UserController {
       res.status(500).json({ mensaje: "Error interno del servidor al crear usuario", error: error.message });
     }
   }
-  
-  
-    static async listar(req: Request, res: Response) {
-      const usuarios = await UsuarioService.obtenerUsuarios();
-      res.json(usuarios);
-    }
-  
-   
-  
-    static async obtenerPorId(req: Request, res: Response) {
-      const id = parseInt( req.body.id);
-      console.log("METODO LISTA ID", id)
-      const usuario = await UsuarioService.obtenerUsuarioPorId(id);
-      if (usuario) res.json(usuario);
-      else res.status(404).json({ mensaje: 'Usuario no encontrado' });
-    }
 
-    static async LoginPorMail(req: Request, res: Response) {
-      const { email, password } = req.body;
-      console.log(email, password)
-      const usuario = await UsuarioService.obtenerLoginPorMail(email, password);
+  /*static async obtenerPorId(req: Request, res: Response) {
+    const id = parseInt( req.body.id);
+    console.log("METODO LISTA ID", id)
+    const usuario = await UsuarioService.obtenerUsuarioPorId(id);
+    if (usuario) res.json(usuario);
+    else res.status(404).json({ mensaje: 'Usuario no encontrado' });
+  }*/
 
-      if (usuario) {
-        res.json(usuario);
-      } else {
-        res.status(401).json({ mensaje: 'Credenciales inválidas' });
-      }
+  static async LoginPorMail(req: Request, res: Response) {
+    const { email, password } = req.body;
+    console.log(email, password)
+    const usuario = await UsuarioService.obtenerLoginPorMail(email, password);
+
+    if (usuario) {
+      res.json(usuario);
+    } else {
+      res.status(401).json({ mensaje: 'Credenciales inválidas' });
     }
-
-  
   }
-  
+
+
+}
+
 
