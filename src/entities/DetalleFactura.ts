@@ -15,39 +15,39 @@ import { Servicio } from './Servicio'; // Importar Servicio
 @Entity('detalles_factura')
 export class DetalleFactura {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({ type: 'int', nullable: true })
-  id_factura: number;
+  id_factura!: number;
 
   @Column({ type: 'int', nullable: true })
-  id_producto: number; // Puede ser NULL si es un servicio
+  id_producto!: number; // Puede ser NULL si es un servicio
 
   @Column({ type: 'int', nullable: true })
-  id_servicio: number; // Puede ser NULL si es un producto
+  id_servicio!: number; // Puede ser NULL si es un producto
 
   @Column({ type: 'text', nullable: true })
-  descripcion: string; // Para descripción manual o servicios sin ID específico
+  descripcion!: string; // Para descripción manual o servicios sin ID específico
 
   @Column({ type: 'int', nullable: true })
-  cantidad: number;
+  cantidad!: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
-  precio_unitario: number;
+  precio_unitario!: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
-  total: number;
+  total!: number;
 
   // Relaciones
   @ManyToOne(() => Factura, (factura) => factura.detallesFactura)
   @JoinColumn({ name: 'id_factura' })
-  factura: Factura;
+  factura!: Factura;
 
   @ManyToOne(() => Producto, (producto) => producto.detallesFactura)
   @JoinColumn({ name: 'id_producto' })
-  producto: Producto;
+  producto!: Producto;
 
   @ManyToOne(() => Servicio, (servicio) => servicio.detallesFactura)
   @JoinColumn({ name: 'id_servicio' })
-  servicio: Servicio;
+  servicio!: Servicio;
 }

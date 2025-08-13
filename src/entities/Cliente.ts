@@ -12,21 +12,21 @@ import { Factura } from './Facturas'; // Importar Factura
 @Entity('clientes')
 export class Cliente {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  nombre: string;
+  nombre!: string;
 
   @Column({ type: 'varchar', length: 20, nullable: true })
-  identificacion: string;
+  identificacion!: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  correo: string;
+  correo!: string;
 
   @Column({ type: 'text', nullable: true })
-  direccion: string;
+  direccion!: string;
 
   // Relaciones
   @OneToMany(() => Factura, (factura) => factura.cliente)
-  facturas: Factura[];
+  facturas!: Factura[];
 }

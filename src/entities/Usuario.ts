@@ -15,33 +15,33 @@ import { Empleado } from './Empleado'; // Importar Empleado
 @Entity('usuarios') // Nombre de la tabla en la base de datos
 export class Usuario {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({ type: 'varchar', length: 255, nullable: false })
-  nombre: string;
+  nombre!: string;
 
   @Column({ type: 'varchar', length: 255, unique: true, nullable: false })
-  correo: string;
+  correo!: string;
 
   @Column({ type: 'text', nullable: false })
-  contrasena: string; // Almacenar el hash de la contraseña
+  contrasena!: string; // Almacenar el hash de la contraseña
 
   @Column({ type: 'varchar', length: 50, nullable: false })
-  rol: string; // 'admin' | 'barbero'
+  rol!: string; // 'admin' | 'barbero'
 
   @Column({ type: 'varchar', length: 50, nullable: true })
-  numero_telefono: string;
+  numero_telefono!: string;
 
   @Column({ type: 'varchar', length: 20, nullable: true })
-  numero_identificacion: string;
+  numero_identificacion!: string;
 
   @CreateDateColumn({ type: 'datetime2', default: () => 'GETDATE()' }) // CORRECCIÓN: Cambiado a 'datetime2' y 'GETDATE()' para MSSQL
-  creado_en: Date;
+  creado_en!: Date;
 
   // Relaciones
   @OneToMany(() => Negocio, (negocio) => negocio.administrador)
-  negociosAdministrados: Negocio[];
+  negociosAdministrados!: Negocio[];
 
   @OneToMany(() => Empleado, (empleado) => empleado.usuario)
-  empleados: Empleado[];
+  empleados!: Empleado[];
 }

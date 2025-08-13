@@ -14,25 +14,25 @@ import { DetalleFactura } from './DetalleFactura'; // Importar DetalleFactura
 @Entity('servicios')
 export class Servicio {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({ type: 'varchar', length: 255, nullable: false })
-  nombre: string;
+  nombre!: string;
 
   @Column({ type: 'text', nullable: true })
-  descripcion: string;
+  descripcion!: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: false })
-  precio: number;
+  precio!: number;
 
   @Column({ type: 'int', nullable: true })
-  id_negocio: number;
+  id_negocio!: number;
 
   // Relaciones
   @ManyToOne(() => Negocio, (negocio) => negocio.servicios)
   @JoinColumn({ name: 'id_negocio' })
-  negocio: Negocio;
+  negocio!: Negocio;
 
   @OneToMany(() => DetalleFactura, (detalleFactura) => detalleFactura.servicio)
-  detallesFactura: DetalleFactura[];
+  detallesFactura!: DetalleFactura[];
 }

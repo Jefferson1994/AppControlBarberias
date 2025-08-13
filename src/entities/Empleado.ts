@@ -15,26 +15,26 @@ import { Caja } from './Cajas'; // Importar Caja
 @Entity('empleados')
 export class Empleado {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({ type: 'int', unique: true, nullable: false })
-  id_usuario: number;
+  id_usuario!: number;
 
   @Column({ type: 'int', nullable: false })
-  id_negocio: number;
+  id_negocio!: number;
 
   @Column({ type: 'bit', default: true, nullable: false }) // CORRECCIÓN: Cambiado a 'bit' para MSSQL
-  activo: boolean;
+  activo!: boolean;
 
   // Relaciones
   @ManyToOne(() => Usuario, (usuario) => usuario.empleados)
   @JoinColumn({ name: 'id_usuario' })
-  usuario: Usuario;
+  usuario!: Usuario;
 
   @ManyToOne(() => Negocio, (negocio) => negocio.empleados)
   @JoinColumn({ name: 'id_negocio' })
-  negocio: Negocio;
+  negocio!: Negocio;
 
   @OneToMany(() => Caja, (caja) => caja.empleado)
-  cajas: Caja[];
+  cajas!: Caja[];
 }

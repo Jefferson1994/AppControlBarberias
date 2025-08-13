@@ -16,39 +16,39 @@ import { Factura } from './Facturas'; // Importar Factura
 @Entity('movimientos_caja')
 export class MovimientoCaja {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({ type: 'int', nullable: false })
-  id_caja: number;
+  id_caja!: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: false })
-  monto: number;
+  monto!: number;
 
   @Column({ type: 'varchar', length: 50, nullable: false })
-  tipo: string; // 'ingreso' | 'egreso'
+  tipo!: string; // 'ingreso' | 'egreso'
 
   @Column({ type: 'int', nullable: true })
-  id_metodo_pago: number;
+  id_metodo_pago!: number;
 
   @Column({ type: 'int', nullable: true })
-  id_factura: number;
+  id_factura!: number;
 
   @Column({ type: 'text', nullable: true })
-  detalle: string;
+  detalle!: string;
 
   @CreateDateColumn({ type: 'datetime2', default: () => 'GETDATE()' }) // CORRECCIÓN: Cambiado a 'datetime2' y 'GETDATE()' para MSSQL
-  creado_en: Date;
+  creado_en!: Date;
 
   // Relaciones
   @ManyToOne(() => Caja, (caja) => caja.movimientosCaja)
   @JoinColumn({ name: 'id_caja' })
-  caja: Caja;
+  caja!: Caja;
 
   @ManyToOne(() => MetodoPago, (metodoPago) => metodoPago.movimientosCaja)
   @JoinColumn({ name: 'id_metodo_pago' })
-  metodoPago: MetodoPago;
+  metodoPago!: MetodoPago;
 
   @ManyToOne(() => Factura, (factura) => factura.movimientosCaja)
   @JoinColumn({ name: 'id_factura' })
-  factura: Factura;
+  factura!: Factura;
 }

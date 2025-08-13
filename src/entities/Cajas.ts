@@ -15,41 +15,41 @@ import { MovimientoCaja } from './MovimientoCajas'; // Importar MovimientoCaja
 @Entity('cajas')
 export class Caja {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({ type: 'int', nullable: false })
-  id_empleado: number;
+  id_empleado!: number;
 
   @Column({ type: 'int', nullable: false })
-  id_negocio: number;
+  id_negocio!: number;
 
   @CreateDateColumn({ type: 'datetime2', default: () => 'GETDATE()' }) // CORRECCIÓN: Cambiado a 'datetime2' y 'GETDATE()'
-  fecha_apertura: Date;
+  fecha_apertura!: Date;
 
   @Column({ type: 'datetime2', nullable: true }) // CORRECCIÓN: Cambiado a 'datetime2'
-  fecha_cierre: Date;
+  fecha_cierre!: Date;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0.00, nullable: false })
-  total_esperado: number;
+  total_esperado!: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0.00, nullable: false })
-  total_real: number;
+  total_real!: number;
 
   @Column({ type: 'text', nullable: true })
-  observaciones: string;
+  observaciones!: string;
 
   @Column({ type: 'varchar', length: 50, nullable: false })
-  estado: string; // 'abierta' | 'cerrada'
+  estado!: string; // 'abierta' | 'cerrada'
 
   // Relaciones
   @ManyToOne(() => Empleado, (empleado) => empleado.cajas)
   @JoinColumn({ name: 'id_empleado' })
-  empleado: Empleado;
+  empleado!: Empleado;
 
   @ManyToOne(() => Negocio, (negocio) => negocio.cajas)
   @JoinColumn({ name: 'id_negocio' })
-  negocio: Negocio;
+  negocio!: Negocio;
 
   @OneToMany(() => MovimientoCaja, (movimientoCaja) => movimientoCaja.caja)
-  movimientosCaja: MovimientoCaja[];
+  movimientosCaja!: MovimientoCaja[];
 }

@@ -17,47 +17,47 @@ import { MovimientoCaja } from './MovimientoCajas'; // Importar MovimientoCaja
 @Entity('facturas')
 export class Factura {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({ type: 'varchar', length: 50, unique: true, nullable: true })
-  numero_factura: string;
+  numero_factura!: string;
 
   @CreateDateColumn({ type: 'datetime2', default: () => 'GETDATE()' }) // CORRECCIÓN: Cambiado a 'datetime2' y 'GETDATE()' para MSSQL
-  fecha: Date;
+  fecha!: Date;
 
   @Column({ type: 'int', nullable: true })
-  id_negocio: number;
+  id_negocio!: number;
 
   @Column({ type: 'int', nullable: true })
-  id_cliente: number;
+  id_cliente!: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
-  subtotal: number;
+  subtotal!: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
-  iva: number;
+  iva!: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
-  total: number;
+  total!: number;
 
   @Column({ type: 'varchar', length: 50, nullable: true })
-  estado: string; // 'pendiente', 'enviada', 'autorizada', 'anulada'
+  estado!: string; // 'pendiente', 'enviada', 'autorizada', 'anulada'
 
   @Column({ type: 'varchar', length: 50, nullable: true })
-  tipo_comprobante: string; // 'factura', 'nota de venta', etc.
+  tipo_comprobante!: string; // 'factura', 'nota de venta', etc.
 
   // Relaciones
   @ManyToOne(() => Cliente, (cliente) => cliente.facturas)
   @JoinColumn({ name: 'id_cliente' })
-  cliente: Cliente;
+  cliente!: Cliente;
 
   @ManyToOne(() => Negocio, (negocio) => negocio.facturas)
   @JoinColumn({ name: 'id_negocio' })
-  negocio: Negocio;
+  negocio!: Negocio;
 
   @OneToMany(() => DetalleFactura, (detalleFactura) => detalleFactura.factura)
-  detallesFactura: DetalleFactura[];
+  detallesFactura!: DetalleFactura[];
 
   @OneToMany(() => MovimientoCaja, (movimientoCaja) => movimientoCaja.factura)
-  movimientosCaja: MovimientoCaja[];
+  movimientosCaja!: MovimientoCaja[];
 }
