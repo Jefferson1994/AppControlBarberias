@@ -9,14 +9,7 @@ export class GastoController {
   // Los métodos comentados deben estar dentro de la clase GastoController
   static async crearGasto(req: Request, res: Response) {
     try {
-      // Si esta funcionalidad ya no es relevante o las entidades Gasto/TipoGasto no existen,
-      // este controlador debería ser eliminado o adaptado a nuevas funcionalidades.
 
-      // Por ahora, si 'Gasto' y 'TipoGasto' ya no existen, esto debe ser manejado.
-      // Si este controlador no se usará más, se puede eliminar el archivo.
-      // Si se va a adaptar para otra cosa (ej. gestión de inventario de productos),
-      // el código interno necesitaría reescribirse.
-      
       res.status(404).json({ mensaje: "Funcionalidad de Gasto no implementada o deshabilitada." });
 
     } catch (error: unknown) { // Añadido : unknown
@@ -24,9 +17,6 @@ export class GastoController {
       res.status(500).json({ mensaje: "Error al crear gasto", error: (error as Error).message }); // Corregido: TS18046
     }
   }
-
-  // Agrega otros métodos si GastoController tiene más funcionalidades
-  // static async obtenerGastos(req: Request, res: Response) { ... }
   */
 
   // Este es un método de ejemplo válido si quieres mantener el controlador pero sin funcionalidad actual

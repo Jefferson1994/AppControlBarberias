@@ -1,16 +1,14 @@
 import { Request, Response } from 'express';
-import * as UsuarioService from '../services/UserService';
-import { crearUsuario } from '../services/UserService';
+import { crearUsuario, obtenerLoginPorMail } from '../services/UserService'; // Importa tus funciones de servicio
+import { AppDataSource } from '../config/data-source'; // Asegúrate de importar AppDataSource
+import { Usuario } from '../entities/Usuario'; // Asegúrate de importar la entidad Usuario
+
 
 export class UserController {
-
   static async crear(req: Request, res: Response) {
     try {
-      // Desestructurar los datos del cuerpo de la solicitud
-      // Asegúrate de que los nombres de las propiedades coincidan con tu entidad Usuario
       const { nombre, correo, contrasena, rol, numero_telefono, numero_identificacion } = req.body;
 
-      // Validaciones básicas de entrada desde la solicitud
       if (!contrasena || contrasena.length < 8) {
         return res.status(400).json({ mensaje: "La contraseña es demasiado corta o no fue proporcionada (mínimo 8 caracteres)." });
       }
@@ -24,31 +22,29 @@ export class UserController {
         return res.status(400).json({ mensaje: "El rol del usuario es obligatorio." });
       }
 
-      // Llamar al servicio para crear el usuario con los datos correctos
       const nuevoUsuario = await crearUsuario({
         nombre,
         correo,
         contrasena, // Aquí pasarías la contraseña en texto plano para que el servicio la hashee
         rol,
-        numero_telefono, // Estos son opcionales según tu entidad
-        numero_identificacion, // Estos son opcionales según tu entidad
+        numero_telefono,
+        numero_identificacion,
       });
 
-      // Prepara el objeto de respuesta para el cliente, excluyendo la contraseña
-      const usuarioParaRespuesta = { ...nuevoUsuario };
-      //delete usuarioParaRespuesta.contrasena; // Elimina la contraseña (hasheada) del objeto de respuesta
+      const usuarioParaRespuesta: Partial<Usuario> = { ...nuevoUsuario };
+      delete (usuarioParaRespuesta as any).contrasena; // CORREGIDO: Vuelve a habilitar el delete con as any para seguridad.
 
       res.status(201).json({
-        mensaje: "Usuario creado correctamente. Por favor, inicia sesión.", // Mensaje de éxito
-        usuario: usuarioParaRespuesta // Devuelve el usuario sin la contraseña
+        mensaje: "Usuario creado correctamente. Por favor, inicia sesión.",
+        usuario: usuarioParaRespuesta
       });
-    } catch (error) {
-      console.error("Error creando usuario:", error);
-      // Manejo de errores más específico, por ejemplo, si el correo ya existe
-      if (error.message.includes('UNIQUE constraint failed')) { // Ejemplo para errores de unicidad
+    } catch (error: unknown) { // CORREGIDO: Añadido : unknown para tipado explícito
+      console.error("Error creando usuario:", (error as Error).message); // CORREGIDO: Asertado a Error
+      
+      if (error instanceof Error && error.message.includes('UNIQUE constraint failed')) {
         return res.status(409).json({ mensaje: "Error al crear usuario: El correo electrónico ya está registrado.", error: error.message });
       }
-      res.status(500).json({ mensaje: "Error interno del servidor al crear usuario", error: error.message });
+      res.status(500).json({ mensaje: "Error interno del servidor al crear usuario", error: (error as Error).message }); // CORREGIDO: Asertado a Error
     }
   }
 
@@ -61,18 +57,25 @@ export class UserController {
   }*/
 
   static async LoginPorMail(req: Request, res: Response) {
-    const { email, password } = req.body;
-    console.log(email, password)
-    const usuario = await UsuarioService.obtenerLoginPorMail(email, password);
+    try {
+      const { correo, contrasena } = req.body; // CORREGIDO: Cambiado 'email' a 'correo' y 'password' a 'contrasena'
+      console.log(correo, contrasena)
+      const usuario = await obtenerLoginPorMail(correo, contrasena); // CORREGIDO: Cambiado 'email' a 'correo' y 'password' a 'contrasena'
 
-    if (usuario) {
-      res.json(usuario);
-    } else {
-      res.status(401).json({ mensaje: 'Credenciales inválidas' });
+      if (usuario) {
+        const usuarioLogueado: Partial<Usuario> = { ...usuario };
+        delete (usuarioLogueado as any).contrasena; // Excluir la contraseña
+
+        res.status(200).json({
+          message: 'Inicio de sesión exitoso',
+          user: usuarioLogueado,
+        });
+      } else {
+        res.status(401).json({ message: 'Credenciales inválidas' });
+      }
+    } catch (error: unknown) { // CORREGIDO: Añadido : unknown
+      console.error("Error en el login:", (error as Error).message); // CORREGIDO: Asertado a Error
+      res.status(500).json({ message: "Error interno del servidor durante el login", error: (error as Error).message }); // CORREGIDO: Asertado a Error
     }
   }
-
-
 }
-
-
