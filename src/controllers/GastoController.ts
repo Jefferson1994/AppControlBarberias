@@ -1,3 +1,40 @@
+import { Request, Response } from 'express';
+
+// Si las funcionalidades de "Gasto" ya no son parte de este proyecto,
+// este controlador debería ser eliminado o adaptado para nuevas funcionalidades.
+// Por ahora, lo mantenemos con una estructura válida.
+
+export class GastoController {
+  /*
+  // Los métodos comentados deben estar dentro de la clase GastoController
+  static async crearGasto(req: Request, res: Response) {
+    try {
+      // Si esta funcionalidad ya no es relevante o las entidades Gasto/TipoGasto no existen,
+      // este controlador debería ser eliminado o adaptado a nuevas funcionalidades.
+
+      // Por ahora, si 'Gasto' y 'TipoGasto' ya no existen, esto debe ser manejado.
+      // Si este controlador no se usará más, se puede eliminar el archivo.
+      // Si se va a adaptar para otra cosa (ej. gestión de inventario de productos),
+      // el código interno necesitaría reescribirse.
+      
+      res.status(404).json({ mensaje: "Funcionalidad de Gasto no implementada o deshabilitada." });
+
+    } catch (error: unknown) { // Añadido : unknown
+      console.error("Error creando gasto:", (error as Error).message); // Corregido: TS18046
+      res.status(500).json({ mensaje: "Error al crear gasto", error: (error as Error).message }); // Corregido: TS18046
+    }
+  }
+
+  // Agrega otros métodos si GastoController tiene más funcionalidades
+  // static async obtenerGastos(req: Request, res: Response) { ... }
+  */
+
+  // Este es un método de ejemplo válido si quieres mantener el controlador pero sin funcionalidad actual
+  static async healthCheck(req: Request, res: Response) {
+    res.status(200).json({ mensaje: "GastoController está activo pero sus funcionalidades están deshabilitadas." });
+  }
+}
+
 /*import { Request, Response } from 'express';
 import * as GastosService from '../services/GastoService';
 
@@ -73,6 +110,6 @@ export class GastosController {
     }*/
 
   
-  }
+  //}
   
 
