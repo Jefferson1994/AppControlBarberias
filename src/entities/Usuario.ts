@@ -11,6 +11,7 @@ import {
 
 import { Negocio } from './Negocio'; // Importar Negocio
 import { Empleado } from './Empleado'; // Importar Empleado
+import { Rol } from './Rol';
 // --- Entidad Usuario ---
 @Entity('usuarios') // Nombre de la tabla en la base de datos
 export class Usuario {
@@ -26,8 +27,9 @@ export class Usuario {
   @Column({ type: 'text', nullable: false })
   contrasena!: string; // Almacenar el hash de la contraseña
 
-  @Column({ type: 'varchar', length: 50, nullable: false })
-  rol!: string; // 'admin' | 'barbero'
+  // clave foránea a la tabla 'roles'
+  @Column({ type: 'int', nullable: false })
+  id_rol!: number;
 
   @Column({ type: 'varchar', length: 50, nullable: true })
   numero_telefono!: string;
@@ -39,6 +41,10 @@ export class Usuario {
   creado_en!: Date;
 
   // Relaciones
+  @ManyToOne(() => Rol, (rol) => rol.usuarios)
+  @JoinColumn({ name: 'id_rol' }) // Define la columna en Usuario que es la FK
+  rol!: Rol; // La propiedad que contendrá el objeto Rol relacionado
+
   @OneToMany(() => Negocio, (negocio) => negocio.administrador)
   negociosAdministrados!: Negocio[];
 
