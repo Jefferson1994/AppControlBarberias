@@ -1,7 +1,7 @@
 import { AppDataSource } from "../config/data-source"; 
 import { Usuario } from '../entities/Usuario';
 import { Rol } from "../entities/Rol";
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { QueryFailedError } from "typeorm"; 
 const usuarioRepository = AppDataSource.getRepository(Usuario);
 
