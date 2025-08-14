@@ -12,6 +12,7 @@ import {
 import { Negocio } from './Negocio'; // Importar Negocio
 import { Empleado } from './Empleado'; // Importar Empleado
 import { Rol } from './Rol';
+import { Otp } from './Otp';
 // --- Entidad Usuario ---
 @Entity('usuarios') // Nombre de la tabla en la base de datos
 export class Usuario {
@@ -40,6 +41,9 @@ export class Usuario {
   @CreateDateColumn({ type: 'datetime2', default: () => 'GETDATE()' }) // CORRECCIÓN: Cambiado a 'datetime2' y 'GETDATE()' para MSSQL
   creado_en!: Date;
 
+  @Column({ type: 'tinyint', default: 1, nullable: false })
+  activo!: number;
+
   // Relaciones
   @ManyToOne(() => Rol, (rol) => rol.usuarios)
   @JoinColumn({ name: 'id_rol' }) // Define la columna en Usuario que es la FK
@@ -50,4 +54,7 @@ export class Usuario {
 
   @OneToMany(() => Empleado, (empleado) => empleado.usuario)
   empleados!: Empleado[];
+
+  @OneToMany(() => Otp, (otp) => otp.usuario)
+  otps!: Otp[];
 }

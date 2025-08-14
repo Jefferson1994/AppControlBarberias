@@ -2,8 +2,14 @@ import { AppDataSource } from "../config/data-source";
 import { Usuario } from '../entities/Usuario';
 import { Rol } from "../entities/Rol";
 import bcrypt from 'bcryptjs';
-import { QueryFailedError } from "typeorm"; 
+import { QueryFailedError } from "typeorm";
+import { Otp } from "../entities/Otp"; // Importar la entidad Otp
+import { TipoOtp } from "../entities/TipoOtp"; // Importar la entidad TipoOtp
+import * as dotenv from 'dotenv'; 
+import { sendEmail, generateOtp } from './EmailService'; // Importar el EmailService
+
 const usuarioRepository = AppDataSource.getRepository(Usuario);
+dotenv.config(); 
 
 export const obtenerUsuarios = async () => {
   return await usuarioRepository.find();
@@ -19,33 +25,81 @@ export const crearUsuario = async (datos: Partial<Usuario>): Promise<Usuario> =>
       if (!datos.id_rol) throw new Error("El ID del rol es obligatorio.");
 
       // ¡CRÍTICO! Hashear la contraseña antes de guardarla
-      const saltRounds = 10; // Número de rondas de sal para el hashing
+      const saltRounds = 10;
       const hashedPassword = await bcrypt.hash(datos.contrasena, saltRounds);
-      datos.contrasena = hashedPassword; // Sobrescribe la contraseña con su hash
+      datos.contrasena = hashedPassword;
+
+      // Por defecto, el usuario se crea como activo (activo = 1) según la entidad Usuario.
+      // La "activación de cuenta" ahora se manejará con la verificación del OTP,
+      // que simplemente confirmará que el correo es válido, pero el usuario ya puede iniciar sesión.
+      // Si la lógica es que NO PUEDE INICIAR SESIÓN hasta verificar, el campo 'activo' en Usuario
+      // debería ser '0' por defecto y cambiar a '1' en verificarOtp.
+      // Para este flujo, asumimos que el usuario puede intentar loguearse y luego se le pedirá el OTP.
 
       const nuevoUsuario = transactionalEntityManager.create(Usuario, datos);
-      return await transactionalEntityManager.save(Usuario, nuevoUsuario);
+      const usuarioGuardado = await transactionalEntityManager.save(Usuario, nuevoUsuario);
+
+      // --- Lógica de Creación y Envío de OTP para VERIFICACION_CUENTA ---
+      const otpRepository = transactionalEntityManager.getRepository(Otp);
+      const tipoOtpRepository = transactionalEntityManager.getRepository(TipoOtp);
+
+      // Buscar el TipoOtp para 'VERIFICACION_CUENTA'
+      let tipoVerificacion = await tipoOtpRepository.findOne({
+        where: { nombre: 'VERIFICACION_CUENTA' },
+      });
+
+      // Si no existe el TipoOtp, crearlo (esto es útil para la primera vez o si se despliega en una DB vacía)
+      if (!tipoVerificacion) {
+        tipoVerificacion = tipoOtpRepository.create({ nombre: 'VERIFICACION_CUENTA', descripcion: 'Verificación de cuenta de usuario', activo: 1 });
+        await tipoOtpRepository.save(tipoVerificacion);
+      }
+
+      const otpCode = generateOtp(6);
+      const otpExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // OTP válido por 15 minutos
+
+      // Crear y guardar el nuevo registro OTP
+      const newOtp = otpRepository.create({
+        id_usuario: usuarioGuardado.id,
+        id_tipo_otp: tipoVerificacion.id,
+        codigo: otpCode,
+        expira_en: otpExpiresAt,
+        usado: false, // Por defecto, no usado
+      });
+      await otpRepository.save(newOtp);
+
+      // Enviar el correo con el OTP
+      const emailSubject = 'Verifica tu cuenta en [Tu Aplicación]';
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <h2 style="color: #0056b3;">Verifica tu Correo Electrónico</h2>
+          <p>Hola ${usuarioGuardado.nombre},</p>
+          <p>Gracias por registrarte en [Tu Aplicación]. Para activar tu cuenta, por favor usa el siguiente código de verificación:</p>
+          <p style="font-size: 24px; font-weight: bold; color: #007bff; background-color: #f0f8ff; padding: 10px; border-radius: 5px; display: inline-block;">
+            ${otpCode}
+          </p>
+          <p>Este código es válido por los próximos 15 minutos.</p>
+          <p>Si no te registraste en [Tu Aplicación], por favor ignora este correo.</p>
+          <p>Gracias,</p>
+          <p>El Equipo de [Tu Aplicación]</p>
+        </div>
+      `;
+
+      await sendEmail(usuarioGuardado.correo, emailSubject, `Tu código de verificación es: ${otpCode}`, emailHtml);
+      console.log(`OTP de verificación de cuenta enviado al nuevo usuario ${usuarioGuardado.correo}`);
+
+      return usuarioGuardado; // Devuelve el usuario (aún no verificado)
     } catch (error: unknown) {
-      console.error("Error detallado en crearUsuario:", error); // Log del error completo para depuración
-
-      // Manejo específico para errores de base de datos
+      console.error("Error detallado en crearUsuario:", error);
       if (error instanceof QueryFailedError) {
-        // Para SQL Server (MSSQL), los errores de unicidad suelen tener códigos 2627 o 2601
-        // Se accede al error del driver original para obtener el número de error
-        const driverErrorCode = (error.driverError as any)?.number; // Acceder al número del error del driver
-
+        const driverErrorCode = (error.driverError as any)?.number;
         if (driverErrorCode === 2627 || driverErrorCode === 2601) {
           throw new Error("El correo electrónico ya está registrado. Por favor, elige otro.");
         }
       }
-      
-      // Si no es un error de base de datos específico, o no se pudo identificar,
-      // se relanza un mensaje genérico para la capa superior.
       throw new Error("No se pudo crear el usuario. Por favor, inténtalo de nuevo más tarde.");
     }
   });
 };
-
 
 
 type TipoResumen = "ingresos" | "egresos";
