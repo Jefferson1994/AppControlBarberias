@@ -56,7 +56,9 @@ export const AppDataSource = new DataSource({
     Negocio,
     Producto,
     Servicio,
-    Rol
+    Rol,
+    Otp,
+    TipoOtp
   ],
   options: {
     encrypt: true, // Activar encriptación para conexiones a SQL Azure, o si tu servidor lo requiere
