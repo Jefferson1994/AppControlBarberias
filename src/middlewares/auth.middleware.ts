@@ -43,7 +43,12 @@ export const authenticateJWT = (req: CustomRequest, res: Response, next: NextFun
     const token = authHeader.split(' ')[1];
     console.log("Token extraído (parcial):", token ? token.substring(0, 20) + '...' : "Vacío"); // Log del token (parcial)
 
-    jwt.verify(token, JWT_SECRET, (err: { message: any; }, user: string | JwtPayload) => {
+     if (!token) {
+      console.log("Error: Token JWT no encontrado después de 'Bearer'.");
+      return res.status(401).json({ mensaje: "Acceso no autorizado. Formato de token incorrecto (falta el token después de 'Bearer')." });
+    }
+
+    jwt.verify(token, JWT_SECRET!, (err: { message: any; }, user: string | JwtPayload) => {
       if (err) {
         console.log("Error en jwt.verify: Token inválido o expirado."); // Log de error de verificación
         console.error("Error detallado:", err.message); // Log del mensaje de error
