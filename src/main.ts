@@ -2,7 +2,7 @@ import express from "express";
 import "reflect-metadata";
 import { AppDataSource } from "./config/data-source";
 import userRoutes from "./routes/user.routes";
-//import gatosRoute from "./routes/gasto.routes";
+import empresaRoutes from "./routes/empresa.routes";
 import cors from "cors";
 
 
@@ -16,7 +16,7 @@ AppDataSource.initialize()
     await AppDataSource.runMigrations(); 
 
     app.use("/api", userRoutes);
-    //app.use("/api", gatosRoute);
+    app.use("/empresa", empresaRoutes);
 
     app.listen(3000, () => {
       console.log("Servidor corriendo en http://localhost:3000");

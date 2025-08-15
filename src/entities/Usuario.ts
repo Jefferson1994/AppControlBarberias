@@ -35,7 +35,7 @@ export class Usuario {
   @Column({ type: 'varchar', length: 50, nullable: true })
   numero_telefono!: string;
 
-  @Column({ type: 'varchar', length: 20, nullable: true })
+  @Column({ type: 'varchar', length: 20, unique: true, nullable: true })
   numero_identificacion!: string;
 
   @CreateDateColumn({ type: 'datetime2', default: () => 'GETDATE()' }) // CORRECCIÓN: Cambiado a 'datetime2' y 'GETDATE()' para MSSQL

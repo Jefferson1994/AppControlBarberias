@@ -18,22 +18,10 @@ const transporter = nodemailer.createTransport({
     user: process.env.EMAIL_SERVICE_USER, // Tu dirección de correo electrónico (remitente)
     pass: process.env.EMAIL_SERVICE_PASS, // Tu contraseña de aplicación o normal
   },
-  // Opcional: Ignorar certificados SSL no válidos (NO RECOMENDADO EN PRODUCCIÓN)
-  // tls: {
-  //   rejectUnauthorized: false
-  // }
+
 });
 
-/**
- * Envía un correo electrónico a un destinatario específico.
- *
- * @param to El correo electrónico del destinatario.
- * @param subject El asunto del correo.
- * @param text El contenido del correo en texto plano.
- * @param html Opcional: El contenido del correo en formato HTML para un mejor estilo.
- * @returns Una promesa que se resuelve con la información de la respuesta del servidor de correo.
- * @throws {Error} Si ocurre un error durante el proceso de envío del correo.
- */
+
 export const sendEmail = async (to: string, subject: string, text: string, html?: string): Promise<any> => {
   try {
     // Aquí es donde se construye y se envía el correo.
@@ -55,12 +43,7 @@ export const sendEmail = async (to: string, subject: string, text: string, html?
   }
 };
 
-/**
- * Genera un código OTP (One-Time Password) numérico de una longitud específica.
- *
- * @param length La longitud deseada del OTP (por defecto 6 dígitos).
- * @returns Un string que representa el código OTP generado.
- */
+
 export const generateOtp = (length: number = 6): string => {
   let otp = '';
   for (let i = 0; i < length; i++) {
@@ -68,4 +51,23 @@ export const generateOtp = (length: number = 6): string => {
     otp += Math.floor(Math.random() * 10);
   }
   return otp;
+};
+
+export const prepareOtpVerificationEmail = (userName: string, otpCode: string) => {
+  const emailSubject = 'Verifica tu cuenta en Nombre App';
+  const emailHtml = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+      <h2 style="color: #0056b3;">Verifica tu Correo Electrónico</h2>
+      <p>Hola ${userName},</p>
+      <p>Gracias por registrarte en Nombre App. Para activar tu cuenta, por favor usa el siguiente código de verificación:</p>
+      <p style="font-size: 24px; font-weight: bold; color: #007bff; background-color: #f0f8ff; padding: 10px; border-radius: 5px; display: inline-block;">
+        ${otpCode}
+      </p>
+      <p>Este código es válido por los próximos 15 minutos.</p>
+      <p>Si no te registraste en Nombre App, por favor ignora este correo.</p>
+      <p>Gracias,</p>
+      <p>El Equipo de Nombre App</p>
+    </div>
+  `;
+  return { emailSubject, emailHtml };
 };
