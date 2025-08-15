@@ -12,7 +12,12 @@ import { sendEmail, generateOtp,prepareOtpVerificationEmail } from './EmailServi
 const usuarioRepository = AppDataSource.getRepository(Usuario);
 const JWT_SECRET = process.env.NODE_ENV === 'development'
   ? process.env.JWT_Desarrollo 
-  : process.env.JWT_SECRET ;// ¡Cambia esto por una clave real en .env!
+  : process.env.JWT_SECRET ;
+if (!JWT_SECRET) {
+  console.error("ERROR CRÍTICO: La variable de entorno JWT_SECRET o JWT_Desarrollo no está definida en UserService.");
+  console.error("Por favor, asegúrate de configurar JWT_SECRET en .env para producción, o JWT_Desarrollo en .env para desarrollo.");
+  process.exit(1);
+}
 dotenv.config(); 
 
 export const obtenerUsuarios = async () => {
