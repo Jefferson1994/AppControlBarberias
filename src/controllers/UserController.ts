@@ -1,8 +1,16 @@
 import { Request, Response } from 'express';
-import { crearUsuario, obtenerLoginPorMail, obtenerRolesActivos } from '../services/UserService'; // Importa tus funciones de servicio
+import { crearUsuario, obtenerLoginPorMail, obtenerRolesActivos, obtenerUsuarioPorIdentificacion } from '../services/UserService'; // Importa tus funciones de servicio
 import { AppDataSource } from '../config/data-source'; // Asegúrate de importar AppDataSource
 import { Usuario } from '../entities/Usuario'; // Asegúrate de importar la entidad Usuario
 
+interface CustomRequest extends Request {
+  user?: {
+    id: number;
+    correo: string;
+    id_rol: number;
+    rolNombre: string | null;
+  };
+}
 
 export class UserController {
   
@@ -111,4 +119,43 @@ export class UserController {
       res.status(500).json({ mensaje: "Error al crear rol.", error: (error as Error).message });
     }
   }*/
+  
+ static async obtenerPorCedula(req: CustomRequest, res: Response) {
+    try {
+      // 1. Verificar autenticación y rol del solicitante (solo administradores pueden buscar colaboradores)
+      if (!req.user) { // CORREGIDO: Acceso a req.user para verificar autenticación
+        return res.status(401).json({ mensaje: "Usuario no autenticado." });
+      }
+      if (req.user.rolNombre !== 'Administrador') { // CORREGIDO: Acceso a req.user.rolNombre
+        console.warn(`Intento de búsqueda de colaborador por usuario no autorizado: ${req.user.correo} (Rol: ${req.user.rolNombre})`); // CORREGIDO: Acceso a req.user.correo y req.user.rolNombre
+        return res.status(403).json({ mensaje: "Acceso denegado. Solo los administradores pueden buscar colaboradores." });
+      }
+
+      // 2. Obtener el número de identificación DEL CUERPO DE LA SOLICITUD
+      const { cedula } = req.body;
+
+      if (!cedula) {
+        return res.status(400).json({ mensaje: "El campo 'cedula' es obligatorio en el cuerpo de la solicitud para la búsqueda." });
+      }
+
+      // 3. Llamar al servicio para buscar el usuario por identificación
+      const colaboradorEncontrado = await obtenerUsuarioPorIdentificacion(cedula);
+
+      if (colaboradorEncontrado) {
+        res.status(200).json({
+          mensaje: "Colaborador encontrado exitosamente.",
+          colaborador: colaboradorEncontrado,
+        });
+      } else {
+        res.status(404).json({
+          mensaje: "No se encontró un colaborador con esa identificación o el usuario no tiene el rol de 'Colaborador'."
+        });
+      }
+
+    } catch (error: unknown) {
+      console.error("Error en UserController.obtenerPorCedula:", (error as Error).message);
+      res.status(500).json({ mensaje: "Error interno del servidor al buscar colaborador por identificación.", error: (error as Error).message });
+    }
+  }
+
 }

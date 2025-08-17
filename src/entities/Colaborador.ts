@@ -12,12 +12,12 @@ import { Usuario } from './Usuario'; // Importar Usuario
 import { Negocio } from './Negocio'; // Importar Negocio
 import { Caja } from './Cajas'; // Importar Caja
 
-@Entity('empleados')
-export class Empleado {
+@Entity('Colaboradores')
+export class Colaborador {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ type: 'int', unique: true, nullable: false })
+  @Column({ type: 'int', nullable: false })
   id_usuario!: number;
 
   @Column({ type: 'int', nullable: false })
@@ -31,10 +31,10 @@ export class Empleado {
   @JoinColumn({ name: 'id_usuario' })
   usuario!: Usuario;
 
-  @ManyToOne(() => Negocio, (negocio) => negocio.empleados)
+  @ManyToOne(() => Negocio, (negocio) => negocio.Colaboradors)
   @JoinColumn({ name: 'id_negocio' })
   negocio!: Negocio;
 
-  @OneToMany(() => Caja, (caja) => caja.empleado)
+  @OneToMany(() => Caja, (caja) => caja.Colaborador)
   cajas!: Caja[];
 }

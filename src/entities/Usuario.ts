@@ -10,7 +10,6 @@ import {
 } from 'typeorm';
 
 import { Negocio } from './Negocio'; // Importar Negocio
-import { Empleado } from './Empleado'; // Importar Empleado
 import { Rol } from './Rol';
 import { Otp } from './Otp';
 // --- Entidad Usuario ---
@@ -52,9 +51,8 @@ export class Usuario {
   @OneToMany(() => Negocio, (negocio) => negocio.administrador)
   negociosAdministrados!: Negocio[];
 
-  @OneToMany(() => Empleado, (empleado) => empleado.usuario)
-  empleados!: Empleado[];
 
   @OneToMany(() => Otp, (otp) => otp.usuario)
   otps!: Otp[];
+  empleados: any;
 }

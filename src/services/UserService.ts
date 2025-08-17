@@ -105,7 +105,7 @@ export const obtenerLoginPorMail = async (correo: string, contrasena: string): P
   try {
     const usuario = await usuarioRepository.findOne({
       where: { correo: correo },
-      relations: ['negociosAdministrados', 'empleados', 'rol'], // Asegúrate de cargar el rol para el payload
+      relations: ['negociosAdministrados', 'rol'], // Asegúrate de cargar el rol para el payload
     });
 
     console.log("Usuario encontrado en DB:", usuario ? usuario.correo : "Ninguno");
@@ -198,3 +198,32 @@ export const crearRol = async (datos: Partial<Rol>): Promise<Rol> => {
   });
 };*/
 
+export const obtenerUsuarioPorIdentificacion = async (numeroIdentificacion: string): Promise<Partial<Usuario> | null> => {
+  if (!numeroIdentificacion) {
+    throw new Error("El número de identificación es obligatorio para la búsqueda.");
+  }
+
+  try {
+    const usuario = await usuarioRepository.findOne({
+      where: { numero_identificacion: numeroIdentificacion },
+      relations: ['rol'], // Asegurarse de cargar la relación 'rol'
+    });
+
+    if (!usuario) {
+      return null; // Usuario no encontrado
+    }
+
+    // Verificar si el rol del usuario es 'Colaborador'
+    if (usuario.rol && usuario.rol.nombre === 'Colaborador') {
+      const usuarioParaRespuesta: Partial<Usuario> = { ...usuario };
+      delete (usuarioParaRespuesta as any).contrasena; // No devolver la contraseña
+      return usuarioParaRespuesta;
+    } else {
+      // El usuario existe pero no tiene el rol de Colaborador
+      return null;
+    }
+  } catch (error: unknown) {
+    console.error("Error en obtenerUsuarioPorIdentificacion:", (error as Error).message);
+    throw new Error("Ocurrió un error al buscar el usuario por identificación.");
+  }
+};

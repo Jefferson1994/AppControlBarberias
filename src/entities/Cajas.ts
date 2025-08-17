@@ -8,7 +8,7 @@ import {
   JoinColumn,
   CreateDateColumn,
 } from 'typeorm';
-import { Empleado } from './Empleado'; // Importar Empleado
+import { Colaborador } from './Colaborador'; // Importar Colaborador
 import { Negocio } from './Negocio'; // Importar Negocio
 import { MovimientoCaja } from './MovimientoCajas'; // Importar MovimientoCaja
 
@@ -18,7 +18,7 @@ export class Caja {
   id!: number;
 
   @Column({ type: 'int', nullable: false })
-  id_empleado!: number;
+  id_Colaborador!: number;
 
   @Column({ type: 'int', nullable: false })
   id_negocio!: number;
@@ -42,9 +42,9 @@ export class Caja {
   estado!: string; // 'abierta' | 'cerrada'
 
   // Relaciones
-  @ManyToOne(() => Empleado, (empleado) => empleado.cajas)
-  @JoinColumn({ name: 'id_empleado' })
-  empleado!: Empleado;
+  @ManyToOne(() => Colaborador, (Colaborador) => Colaborador.cajas)
+  @JoinColumn({ name: 'id_Colaborador' })
+  Colaborador!: Colaborador;
 
   @ManyToOne(() => Negocio, (negocio) => negocio.cajas)
   @JoinColumn({ name: 'id_negocio' })
