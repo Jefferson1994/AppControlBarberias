@@ -39,6 +39,9 @@ export class Servicio {
   @Column({ type: 'int', nullable: false })
   id_tipo_servicio!: number; // Clave foránea al TipoServicio al que pertenece
 
+  @Column({ type: 'int', nullable: false, default: 0 }) //
+  porcentaje_comision_colaborador!: number;
+
     // Campo para control de eliminación lógica: 0 = activo (por defecto), 1 = inactivo
   @Column({ type: 'tinyint', default: 0, nullable: false }) // Cambiado a 0 para activo como default
   activo!: number;
