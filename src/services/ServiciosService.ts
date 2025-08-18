@@ -84,7 +84,7 @@ export const obtenerServiciosPorNegocio = async (idNegocio: number): Promise<Ser
   try {
     const servicioRepository = AppDataSource.getRepository(Servicio);
     const servicios = await servicioRepository.find({
-      where: { id_negocio: idNegocio, activo: 0 }, // Filtrar por negocio Y por activo = 0
+      where: { id_negocio: idNegocio, activo: 1 }, // Filtrar por negocio Y por activo = 0
       relations: ['tipoServicio'], // ¡NUEVO: Cargar la relación con el tipo de servicio!
       order: { nombre: 'ASC' }, // Ordenar por nombre para mejor visualización
     });
