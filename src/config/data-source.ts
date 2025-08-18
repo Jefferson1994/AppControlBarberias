@@ -15,7 +15,8 @@ import { Otp } from '../entities/Otp';
 import { TipoOtp } from '../entities/TipoOtp';
 import { TipoEmpresa } from '../entities/TipoEmpresa';
 import { DatosContactoEmpresa} from '../entities/DatosContactoEmpresa';
-
+import { TipoProducto} from '../entities/TipoProducto';
+import { TipoServicio} from '../entities/TipoServicio';
 
 //cadeana local
 /*export const AppDataSource = new DataSource({
@@ -29,7 +30,7 @@ import { DatosContactoEmpresa} from '../entities/DatosContactoEmpresa';
   logging:  false,
   entities: [Usuario, Caja, Cliente, DetalleFactura,Colaborador,Factura,
     MetodoPago,MovimientoCaja,Negocio,Producto,Servicio,Rol,Otp,TipoOtp,
-    TipoEmpresa,DatosContactoEmpresa
+    TipoEmpresa,DatosContactoEmpresa,TipoProducto,TipoServicio
   ],
   options: {
     encrypt: false,
@@ -48,22 +49,15 @@ export const AppDataSource = new DataSource({
   synchronize: true, // Sincroniza las entidades con la base de datos (usar con precaución en producción)
   logging: false, // Desactiva el log de consultas SQL en la consola
   entities: [
-    Usuario,
-    Caja,
-    Cliente,
-    DetalleFactura,
-    Colaborador,
-    Factura,
-    MetodoPago,
-    MovimientoCaja,
-    Negocio,
-    Producto,
-    Servicio,
-    Rol,
-    Otp,
-    TipoOtp,
-    TipoEmpresa,
-    DatosContactoEmpresa
+    Usuario,Caja,
+    Cliente,DetalleFactura,
+    Colaborador,Factura,
+    MetodoPago,MovimientoCaja,
+    Negocio,Producto,
+    Servicio,Rol,
+    Otp,TipoOtp,
+    TipoEmpresa,DatosContactoEmpresa,
+    TipoProducto,TipoServicio
   ],
   options: {
     encrypt: true, // Activar encriptación para conexiones a SQL Azure, o si tu servidor lo requiere

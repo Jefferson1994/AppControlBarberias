@@ -5,6 +5,7 @@ import { QueryFailedError } from "typeorm";
 import { CrearEmpresaDatos } from "../interfaces/crearEmpresaDatos";
 import { TipoEmpresa } from "../entities/TipoEmpresa"; 
 import { DatosContactoEmpresa } from "../entities/DatosContactoEmpresa";
+import { Producto } from "../entities/Producto";
 
 /**
  * Crea un nuevo negocio en la base de datos.
@@ -239,4 +240,36 @@ export const eliminarLogicoNegocio = async (id: number): Promise<Negocio> => {
       throw new Error((error as Error).message || "No se pudo eliminar el negocio. Por favor, inténtalo de nuevo más tarde.");
     }
   });
+};
+
+export const obtenerProductosPorNegocio = async (idNegocio: number): Promise<Producto[]> => {
+  try {
+    const productoRepository = AppDataSource.getRepository(Producto);
+    const productos = await productoRepository.find({
+      where: { id_negocio: idNegocio, activo: 1 }, 
+      relations: ['tipoProducto'], 
+      order: { nombre: 'ASC' }, 
+    });
+    return productos;
+  } catch (error: unknown) {
+    console.error("Error en ProductoService.obtenerProductosPorNegocio:", (error as Error).message);
+    throw new Error("No se pudieron obtener los productos para este negocio. Por favor, inténtalo de nuevo más tarde.");
+  }
+};
+
+export const obtenerProductoPorId = async (id: number, idNegocio: number): Promise<Producto | null> => {
+  try {
+    const productoRepository = AppDataSource.getRepository(Producto);
+    const producto = await productoRepository.findOne({
+      where: {
+        id: id,
+        id_negocio: idNegocio, // ¡FILTRO AÑADIDO!: Filtrar por el ID del negocio
+      },
+      relations: ['negocio', 'tipoProducto'], // Cargar las relaciones con el negocio y tipo de producto
+    });
+    return producto;
+  } catch (error: unknown) {
+    console.error("Error en ProductoService.obtenerProductoPorId:", (error as Error).message);
+    throw new Error("No se pudo obtener el producto para el negocio especificado. Por favor, inténtalo de nuevo más tarde.");
+  }
 };
