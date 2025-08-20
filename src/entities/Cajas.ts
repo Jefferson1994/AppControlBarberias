@@ -17,7 +17,8 @@ export class Caja {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ type: 'int', nullable: false })
+  
+  @Column({ type: 'int', nullable: false, name: 'id_Colaborador' }) // Nombre de la columna en la DB (con mayúscula)
   id_Colaborador!: number;
 
   @Column({ type: 'int', nullable: false })
@@ -36,14 +37,16 @@ export class Caja {
   total_real!: number;
 
   @Column({ type: 'text', nullable: true })
-  observaciones!: string;
+  observaciones!: string | null;
 
-  @Column({ type: 'varchar', length: 50, nullable: false })
-  estado!: string; // 'abierta' | 'cerrada'
+    // Campo para control de eliminación lógica: 0 = activo (por defecto), 1 = inactivo
+  @Column({ type: 'tinyint', default: 0, nullable: false }) // Cambiado a 0 para activo como default
+  estado!: number;
+
 
   // Relaciones
-  @ManyToOne(() => Colaborador, (Colaborador) => Colaborador.cajas)
-  @JoinColumn({ name: 'id_Colaborador' })
+  @ManyToOne(() => Colaborador, (Colaborador) => Colaborador.cajas) // Apunta a la clase Colaborador
+  @JoinColumn({ name: 'id_Colaborador' }) // La columna FK en la tabla 'cajas' que referencia a 'Colaboradores.id'
   Colaborador!: Colaborador;
 
   @ManyToOne(() => Negocio, (negocio) => negocio.cajas)

@@ -7,11 +7,16 @@ import {
   ManyToOne,
   JoinColumn,
   CreateDateColumn,
+  Unique,
 } from 'typeorm';
 import { Usuario } from './Usuario'; // Importar Usuario
 import { Negocio } from './Negocio'; // Importar Negocio
 import { Caja } from './Cajas'; // Importar Caja
 
+// Define una restricción UNIQUE compuesta en id_usuario y id_negocio.
+// Esto permite que un usuario sea colaborador en múltiples negocios,
+// pero solo una vez por cada negocio.
+@Unique(['id_usuario', 'id_negocio'])
 @Entity('Colaboradores')
 export class Colaborador {
   @PrimaryGeneratedColumn()
@@ -22,6 +27,9 @@ export class Colaborador {
 
   @Column({ type: 'int', nullable: false })
   id_negocio!: number;
+
+  @Column({ type: 'int', nullable: false, default: 0 }) // No nulo, con un valor por defecto de 0
+  porcentaje_ganancia!: number;
 
   @Column({ type: 'bit', default: true, nullable: false }) // CORRECCIÓN: Cambiado a 'bit' para MSSQL
   activo!: boolean;

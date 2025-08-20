@@ -6,7 +6,7 @@ import empresaRoutes from "./routes/empresa.routes";
 import productosRoutes from "./routes/productos.routes";
 import cors from "cors";
 import router from "./routes/servicios.routes";
-
+import caja from "./routes/caja.routes"; 
 
 const app = express();
 app.use(cors());
@@ -21,6 +21,7 @@ AppDataSource.initialize()
     app.use("/empresa", empresaRoutes);
     app.use("/productos", productosRoutes);
     app.use("/servicio", router);
+    app.use("/caja", caja);
 
     app.listen(3000, () => {
       console.log("Servidor corriendo en http://localhost:3000");
