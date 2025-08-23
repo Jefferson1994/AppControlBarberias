@@ -17,9 +17,13 @@ import { TipoEmpresa } from '../entities/TipoEmpresa';
 import { DatosContactoEmpresa} from '../entities/DatosContactoEmpresa';
 import { TipoProducto} from '../entities/TipoProducto';
 import { TipoServicio} from '../entities/TipoServicio';
+import { TipoMovimientoCaja} from '../entities/TipoMovimientoCaja';
+import { DetalleVenta} from '../entities/DetalleVenta';
+import { Venta} from '../entities/Venta';
+import {ParametroSistema } from '../entities/ParametrosSistema'
 
 //cadeana local
-/*export const AppDataSource = new DataSource({
+export const AppDataSource = new DataSource({
   type: 'mssql',
   host: 'localhost', // o LAPTOP-UA0JFMK2
   port: 1433,
@@ -30,16 +34,17 @@ import { TipoServicio} from '../entities/TipoServicio';
   logging:  false,
   entities: [Usuario, Caja, Cliente, DetalleFactura,Colaborador,Factura,
     MetodoPago,MovimientoCaja,Negocio,Producto,Servicio,Rol,Otp,TipoOtp,
-    TipoEmpresa,DatosContactoEmpresa,TipoProducto,TipoServicio
+    TipoEmpresa,DatosContactoEmpresa,TipoProducto,TipoServicio,TipoMovimientoCaja,
+    Venta,DetalleVenta,ParametroSistema
   ],
   options: {
     encrypt: false,
     enableArithAbort: true,
   },
-});*/
+});
 
 
-export const AppDataSource = new DataSource({
+/*export const AppDataSource = new DataSource({
   type: 'mssql',
   host: 'SQL1004.site4now.net', // Actualizado según "Data Source"
   port: 1433, // Puerto predeterminado para SQL Server, generalmente 1433
@@ -64,4 +69,4 @@ export const AppDataSource = new DataSource({
     trustServerCertificate: true, // Cambiar a false en producción y proporcionar certificados CA válidos
     enableArithAbort: true, // Habilita la validación de errores aritméticos
   },
-});
+});*/
