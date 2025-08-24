@@ -129,7 +129,7 @@ export class NegocioController {
       }
 
       // 2. Obtener los IDs del negocio y del usuario del cuerpo de la solicitud
-      const { id_negocio, id_usuario } = req.body;
+      const { id_negocio, id_usuario,codigo_punto_emision_movil } = req.body;
 
       // 3. Validaciones básicas de entrada
       if (typeof id_negocio !== 'number' || isNaN(id_negocio)) {
@@ -138,9 +138,19 @@ export class NegocioController {
       if (typeof id_usuario !== 'number' || isNaN(id_usuario)) {
         return res.status(400).json({ mensaje: "El ID del usuario (colaborador) es obligatorio y debe ser un número." });
       }
+      if (typeof codigo_punto_emision_movil !== 'string' || codigo_punto_emision_movil.trim() === '') {
+        return res.status(400).json({ mensaje: "El código de punto de emisión móvil es obligatorio y debe ser una cadena de texto." });
+      }
+
+      // 2. Verificar que tenga exactamente 3 caracteres y que todos sean dígitos
+      const regexNumeros = /^\d{3}$/; // Expresión regular: ^inicio, \d{3} tres dígitos, $fin
+
+      if (!regexNumeros.test(codigo_punto_emision_movil)) {
+        return res.status(400).json({ mensaje: "El código de punto de emisión móvil debe ser una cadena de 3 dígitos numéricos (ej. '001')." });
+      }
 
       // 4. Llamar al servicio para agregar el colaborador
-      const nuevoColaborador = await ColaboradorService.agregarColaboradorANegocio(id_negocio, id_usuario);
+      const nuevoColaborador = await ColaboradorService.agregarColaboradorANegocio(id_negocio, id_usuario,codigo_punto_emision_movil);
 
       // 5. Enviar respuesta de éxito
       res.status(201).json({

@@ -21,6 +21,7 @@ import { TipoMovimientoCaja} from '../entities/TipoMovimientoCaja';
 import { DetalleVenta} from '../entities/DetalleVenta';
 import { Venta} from '../entities/Venta';
 import {ParametroSistema } from '../entities/ParametrosSistema'
+import {ComprobanteCounter } from '../entities/ComprobanteCounter'
 
 //cadeana local
 export const AppDataSource = new DataSource({
@@ -35,7 +36,7 @@ export const AppDataSource = new DataSource({
   entities: [Usuario, Caja, Cliente, DetalleFactura,Colaborador,Factura,
     MetodoPago,MovimientoCaja,Negocio,Producto,Servicio,Rol,Otp,TipoOtp,
     TipoEmpresa,DatosContactoEmpresa,TipoProducto,TipoServicio,TipoMovimientoCaja,
-    Venta,DetalleVenta,ParametroSistema
+    Venta,DetalleVenta,ParametroSistema,ComprobanteCounter
   ],
   options: {
     encrypt: false,

@@ -20,9 +20,11 @@ export interface RegistrarMovimientoCajaDatos {
 
 }
 export interface CerrarCajaDatos {
-  id_caja: number;              // ID de la caja que se va a cerrar.
-  total_real_efectivo: number;  // Monto real de efectivo contado al momento del cierre.
-  observaciones?: string | null; // Observaciones adicionales al cerrar la caja.
+  id_caja: number;
+  total_final_efectivo: number;
+  observaciones?: string;
+  id_colaborador?: number; 
+  id_negocio?: number;     
 }
 
 

@@ -37,6 +37,9 @@ export class Negocio {
   @Column({ type: 'varchar', length: 20, unique: true, nullable: false })
   ruc!: string; // Sugerencia: `string` y `nullable: false` si es obligatorio.
 
+  @Column({ type: 'varchar', length: 3, nullable: false, default: '001' })
+  codigo_establecimiento!: string;
+
   // Descripción detallada del negocio, sus servicios, historia, etc.
   @Column({ type: 'text', nullable: true })
   descripcion!: string | null;

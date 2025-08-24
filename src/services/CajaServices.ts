@@ -1,6 +1,7 @@
 import { AppDataSource } from "../config/data-source";
 import { Caja } from "../entities/Cajas"; 
 import { Colaborador } from "../entities/Colaborador"; 
+import { ComprobanteCounter } from "../entities/ComprobanteCounter";
 import { DetalleVenta } from "../entities/DetalleVenta";
 import { MetodoPago } from "../entities/Metodo_Pago";
 import { MovimientoCaja } from "../entities/MovimientoCajas";
@@ -10,8 +11,10 @@ import { Producto } from "../entities/Producto";
 import { Servicio } from "../entities/Servicio";
 import { TipoMovimientoCaja } from "../entities/TipoMovimientoCaja";
 import { Venta } from "../entities/Venta";
-import { AbrirCajaDatos, RegistrarMovimientoCajaDatos, ItemVentaDatos,RegistrarVenta} from "../interfaces/CajaInterfaces";
+import { facturarSRI, generarComprobanteSimple } from "./FacturarSriService";
+import { AbrirCajaDatos, RegistrarMovimientoCajaDatos, ItemVentaDatos,RegistrarVenta, CerrarCajaDatos} from "../interfaces/CajaInterfaces";
 import { EntityManager, In } from "typeorm"; // Importar 'In' para consultas WHERE IN
+
 
 /**
  * Servicio para manejar las operaciones de la entidad Caja.,
@@ -136,6 +139,95 @@ export const abrirCaja = async (datos: AbrirCajaDatos): Promise<Caja> => {
       throw new Error((error as Error).message || "No se pudo abrir la caja. Por favor, inténtalo de nuevo más tarde.");
     } finally {
       
+    }
+  });
+};
+
+export const cerrarCaja = async (datos: CerrarCajaDatos): Promise<Caja> => {
+  return await AppDataSource.manager.transaction(async (transactionalEntityManager) => {
+    try {
+      // 1. Validaciones básicas de campos obligatorios para el cierre.
+      if (!datos.id_caja) {
+        console.error("[cerrarCaja] Error: El ID de la caja es obligatorio para cerrarla.");
+        throw new Error("El ID de la caja es obligatorio para cerrarla.");
+      }
+      
+      // Se añade una advertencia si no se proporciona el total final de efectivo
+      if (datos.total_final_efectivo === undefined || datos.total_final_efectivo === null) {
+        console.warn("[cerrarCaja] Advertencia: No se proporcionó 'total_final_efectivo'. La caja se cerrará sin registrar el monto real, lo que impedirá la conciliación.");
+      }
+
+      // 2. Obtener el repositorio de la entidad Caja para interactuar con la base de datos.
+      const cajaRepository = transactionalEntityManager.getRepository(Caja);
+
+      // Buscar la caja que se intenta cerrar por su ID.
+      const caja = await cajaRepository.findOne({
+        where: { id: datos.id_caja },
+        relations: ['Colaborador', 'negocio']
+      });
+
+      if (!caja) {
+        console.error(`[cerrarCaja] Error: Caja con ID ${datos.id_caja} no encontrada.`);
+        throw new Error(`Caja con ID ${datos.id_caja} no encontrada.`);
+      }
+
+      // 3. Verificar el estado actual de la caja.
+      if (caja.estado !== 1) {
+        const estadoCaja = caja.estado === 0 ? "cerrada" : "en un estado desconocido";
+        console.error(`[cerrarCaja] Error: La caja con ID ${datos.id_caja} ya está ${estadoCaja}.`);
+        throw new Error(`La caja con ID ${datos.id_caja} no está abierta o ya ha sido cerrada.`);
+      }
+
+      // 4. Validaciones adicionales de seguridad (opcional).
+      if (datos.id_colaborador) {
+        const colaboradorRepository = transactionalEntityManager.getRepository(Colaborador);
+        const colaboradorQueCierra = await colaboradorRepository.findOne({
+          where: { id_usuario: datos.id_colaborador, id_negocio: caja.id_negocio },
+        });
+
+        if (!colaboradorQueCierra) {
+            console.error(`[cerrarCaja] Error: Colaborador con ID de usuario ${datos.id_colaborador} no encontrado para el negocio de la caja.`);
+            throw new Error(`El colaborador con ID de usuario ${datos.id_colaborador} no está asociado al negocio de esta caja.`);
+        }
+
+        if (caja.id_Colaborador !== colaboradorQueCierra.id) {
+            console.error(`[cerrarCaja] Error de autorización: El colaborador que intenta cerrar la caja (ID de usuario: ${datos.id_colaborador}) no coincide con el colaborador que la abrió (ID de colaborador: ${caja.id_Colaborador}).`);
+            throw new Error(`El colaborador que intenta cerrar la caja no es quien la abrió.`);
+        }
+      }
+
+      if (datos.id_negocio && caja.id_negocio !== datos.id_negocio) {
+        console.error(`[cerrarCaja] Error de negocio: El negocio especificado (${datos.id_negocio}) no coincide con el negocio de la caja abierta (ID de negocio: ${caja.id_negocio}).`);
+        throw new Error(`El negocio especificado no coincide con el negocio de la caja abierta.`);
+      }
+
+      // 5. Actualizar los campos de la caja para reflejar el cierre.
+      caja.fecha_cierre = new Date(); // Establece la fecha y hora actuales como fecha de cierre.
+      caja.estado = 0; // Cambia el estado de la caja a 'cerrada'.
+
+      // Solo actualiza total_real si se proporcionó un total_final_efectivo
+      if (datos.total_final_efectivo !== undefined && datos.total_final_efectivo !== null) {
+        caja.total_real = datos.total_final_efectivo;
+      } else {
+        // Opcional: Podrías querer establecer un valor por defecto o dejar el actual.
+        // Si no se proporciona el total final, el total_real permanecerá como estaba antes del cierre.
+        // Esto enfatiza la falta de conciliación si no se envía este dato.
+      }
+
+      if (datos.observaciones !== undefined) {
+        caja.observaciones = datos.observaciones;
+      }
+
+      // 6. Guarda los cambios de la caja en la base de datos dentro de la transacción.
+      const cajaCerrada = await transactionalEntityManager.save(Caja, caja);
+
+      console.log(`[cerrarCaja] Caja con ID ${caja.id} cerrada exitosamente por el colaborador ${caja.Colaborador?.usuario?.nombre || caja.id_Colaborador}.`);
+      return cajaCerrada;
+
+    } catch (error: unknown) {
+      const errorMessage = (error as Error).message || "No se pudo cerrar la caja. Por favor, inténtalo de nuevo más tarde.";
+      console.error(`[cerrarCaja] Error al cerrar la caja: ${errorMessage}`);
+      throw new Error(errorMessage);
     }
   });
 };
@@ -402,228 +494,6 @@ export const _registrarMovimientoCajaInterno = async (
 };
 
 
-//Metodo procesar venta version 1 borrar mas adelante ya lo separe en metodos
-/*export const procesarVenta = async (datosVenta: RegistrarVenta): Promise<{ venta: Venta; movimientoCaja: MovimientoCaja }> => {
-  return await AppDataSource.manager.transaction(async (transactionalEntityManager) => {
-    try {
-      console.log("[procesarVenta] Iniciando proceso de venta:", datosVenta);
-
-      // --- 1. Validaciones iniciales de la venta ---
-      if (!datosVenta.id_caja || !datosVenta.id_colaborador || !datosVenta.id_metodo_pago_principal || !datosVenta.items || datosVenta.items.length === 0) {
-        throw new Error("Datos de venta incompletos. Se requieren ID de caja, colaborador, método de pago principal y al menos un ítem.");
-      }
-      if (datosVenta.items.some(item => item.cantidad <= 0 || item.precio_unitario <= 0)) {
-        throw new Error("La cantidad y el precio unitario de todos los ítems deben ser valores positivos.");
-      }
-
-      // --- 2. Verificar existencia de Caja, Colaborador y Método de Pago ---
-      const cajaRepository = transactionalEntityManager.getRepository(Caja);
-      const caja = await cajaRepository.findOne({
-        where: { id: datosVenta.id_caja, estado: 1 },
-      });
-      if (!caja) {
-        throw new Error(`Caja con ID ${datosVenta.id_caja} no encontrada o no está abierta para la venta.`);
-      }
-      console.log(`[procesarVenta] Caja ${caja.id} encontrada y abierta.`);
-
-      const colaboradorRepository = transactionalEntityManager.getRepository(Colaborador);
-      const colaborador = await colaboradorRepository.findOne({
-        where: { id: datosVenta.id_colaborador, id_negocio: caja.id_negocio },
-        relations: ['usuario'],
-      });
-      if (!colaborador) {
-        throw new Error(`Colaborador con ID ${datosVenta.id_colaborador} no encontrado para el negocio de la caja.`);
-      }
-      if (colaborador.activo === false) {
-        throw new Error(`El colaborador '${(colaborador as any).usuario?.nombre || datosVenta.id_colaborador}' está inactivo y no puede registrar ventas.`);
-      }
-      console.log(`[procesarVenta] Colaborador ${colaborador.id} (${(colaborador as any).usuario?.nombre}) encontrado y activo.`);
-
-      const metodoPagoRepository = transactionalEntityManager.getRepository(MetodoPago);
-      const metodoPago = await metodoPagoRepository.findOne({
-        where: { id: datosVenta.id_metodo_pago_principal, activo: true },
-      });
-      if (!metodoPago) {
-        throw new Error(`Método de pago con ID ${datosVenta.id_metodo_pago_principal} no encontrado o inactivo para la venta.`);
-      }
-      console.log(`[procesarVenta] Método de pago '${metodoPago.nombre}' encontrado y activo.`);
-
-      // --- 3. Obtener el TipoMovimientoCaja para INGRESO por VENTA ---
-      const tipoMovimientoCajaRepository = transactionalEntityManager.getRepository(TipoMovimientoCaja);
-      const tipoMovimientoVenta = await tipoMovimientoCajaRepository.findOne({
-        where: { codigo: 'INGRESO', nombre: 'Ingreso', activo: 1 },
-      });
-      if (!tipoMovimientoVenta) {
-        throw new Error("Tipo de movimiento 'Venta' (INGRESO) no configurado en la base de datos o inactivo.");
-      }
-      console.log(`[procesarVenta] Tipo de movimiento para Venta (${tipoMovimientoVenta.nombre}) encontrado.`);
-
-      // --- 4. Determinar el tipo de comprobante ---
-      const tipoComprobante = datosVenta.requiere_factura_formal ? 'FACTURA' : 'COMPROBANTE_SIMPLE';
-      console.log(`[procesarVenta] Tipo de comprobante determinado: ${tipoComprobante}`);
-      
-     
-      // --- 5. Preparar la Venta ---
-      const nuevaVenta = transactionalEntityManager.create(Venta, {
-        id_negocio: caja.id_negocio, // Se obtiene de la caja encontrada
-        id_cliente: datosVenta.id_cliente ?? null,
-        id_colaborador: datosVenta.id_colaborador,
-        id_metodo_pago_principal: metodoPago.id,
-        tipo_comprobante: tipoComprobante,
-        numero_comprobante: '001',
-        estado: 'EMITIDA', // Estado inicial
-        fecha_venta: new Date(),
-        observaciones: datosVenta.observaciones_venta ?? '',
-        subtotal: 0.00,
-        iva: 0.00,
-        total: 0.00,
-        detalles: [], // Inicializamos los detalles como un array vacío
-      });
-
-      console.log("[procesarVenta] Instancia de Venta creada (pre-cálculo):", nuevaVenta);
-
-      // --- 6. Procesar DetalleVenta y Actualizar Stock de Productos/Servicios ---
-      let totalSubtotal = 0;
-      const detallesVenta: DetalleVenta[] = [];
-      const productoRepository = transactionalEntityManager.getRepository(Producto);
-      const servicioRepository = transactionalEntityManager.getRepository(Servicio);
-
-      for (const item of datosVenta.items) {
-          let nombreItem: string;
-          let idEntidad: number; // Puede ser id_producto o id_servicio
-          let tipoEntidad: 'producto' | 'servicio';
-          let precioUnitarioFinal: number; // Precio unitario que se usará para el cálculo y el detalle de venta
-
-          // Validar que solo uno de los ID esté presente
-          if (item.id_producto && item.id_servicio) {
-              throw new Error("Cada ítem de venta no puede ser a la vez un producto y un servicio. Especifique solo uno.");
-          }
-          if (!item.id_producto && !item.id_servicio) {
-              throw new Error("Cada ítem de venta debe especificar un 'id_producto' o un 'id_servicio'.");
-          }
-
-          // Asegurarse de que la cantidad sea válida
-          if (item.cantidad <= 0) {
-              throw new Error(`La cantidad para un ítem de venta debe ser mayor a 0. ID Producto/Servicio: ${item.id_producto || item.id_servicio}.`);
-          }
-
-          if (item.id_producto) {
-              tipoEntidad = 'producto';
-              const producto = await productoRepository.findOne({
-                  where: { id: item.id_producto, id_negocio: caja.id_negocio, activo: 1 },
-              });
-
-              if (!producto) {
-                  throw new Error(`Producto con ID ${item.id_producto} no encontrado, inactivo o no pertenece a este negocio.`);
-              }
-              if (producto.stock_actual < item.cantidad) {
-                  throw new Error(`Stock insuficiente para el producto '${producto.nombre}'. Disponible: ${producto.stock_actual}, Solicitado: ${item.cantidad}.`);
-              }
-
-              // Determinar el precio final del producto
-              if (producto.precio_descuento !== null && producto.precio_descuento !== undefined) {
-                  precioUnitarioFinal = producto.precio_descuento;
-              } else if (producto.precio_promocion !== null && producto.precio_promocion !== undefined) {
-                  precioUnitarioFinal = producto.precio_promocion;
-              } else {
-                  precioUnitarioFinal = producto.precio_venta;
-              }
-
-              nombreItem = producto.nombre;
-              idEntidad = producto.id!;
-
-              // Actualizar stock del producto (dentro de la transacción)
-              producto.stock_actual -= item.cantidad;
-              await transactionalEntityManager.save(Producto, producto); // Asume que Producto es una entidad de TypeORM
-              console.log(`[procesarVenta] Stock actualizado para ${producto.nombre}. Nuevo stock: ${producto.stock_actual}`);
-
-          } else { // item.id_servicio
-              tipoEntidad = 'servicio';
-              const servicio = await servicioRepository.findOne({
-                  where: { id: item.id_servicio!, id_negocio: caja.id_negocio, activo: 1 },
-              });
-
-              if (!servicio) {
-                  throw new Error(`Servicio con ID ${item.id_servicio} no encontrado, inactivo o no pertenece a este negocio.`);
-              }
-
-              // Determinar el precio final del servicio
-              if (servicio.precio_descuento !== null && servicio.precio_descuento !== undefined) {
-                  precioUnitarioFinal = servicio.precio_descuento;
-              } else {
-                  precioUnitarioFinal = servicio.precio;
-              }
-
-              nombreItem =  servicio.nombre;
-              idEntidad = servicio.id!;
-              // Los servicios no tienen gestión de stock
-              console.log(`[procesarVenta] Servicio '${servicio.nombre}' agregado a la venta. No hay gestión de stock.`);
-          }
-
-          // Crear DetalleVenta
-          const detalle = transactionalEntityManager.create(DetalleVenta, {
-              id_venta:nuevaVenta.id,
-              id_producto: tipoEntidad === 'producto' ? idEntidad : null,
-              id_servicio: tipoEntidad === 'servicio' ? idEntidad : null,
-              nombre_producto: nombreItem, // Se usará el nombre del producto/servicio o la descripción adicional
-              cantidad: item.cantidad,
-              precio_unitario: precioUnitarioFinal, // Aquí usamos el precio unitario determinado
-              subtotal: item.cantidad * precioUnitarioFinal, // Se calcula el subtotal del ítem
-          });
-          detallesVenta.push(detalle);
-          totalSubtotal += detalle.subtotal;
-          console.log(`[procesarVenta] Detalle de venta creado para ${nombreItem}. Subtotal: ${detalle.subtotal}`);
-      }
-
-      // --- 7. Calcular Subtotal, IVA y Total de la Venta ---
-      const ValorIvaCajaRepository = transactionalEntityManager.getRepository(ParametroSistema);
-      const ValorIva = await ValorIvaCajaRepository.findOne({
-        where: { nombre: 'IVA_PORCENTAJE', activo: 1 },
-      });
-      const tasaIVA = parseFloat(ValorIva?.valor_desarrollo ?? '0');
-      nuevaVenta.subtotal = parseFloat(totalSubtotal.toFixed(2));
-      nuevaVenta.iva = parseFloat((totalSubtotal * tasaIVA).toFixed(2));
-      nuevaVenta.total = parseFloat((nuevaVenta.subtotal + nuevaVenta.iva).toFixed(2));
-      console.log(`[procesarVenta] Subtotal: ${nuevaVenta.subtotal}, IVA: ${nuevaVenta.iva}, Total: ${nuevaVenta.total}`);
-
-      // --- 8. Guardar la Venta (primero para obtener su ID) ---
-      const ventaGuardada = await transactionalEntityManager.save(Venta, nuevaVenta);
-      console.log("[procesarVenta] Venta guardada para obtener ID:", ventaGuardada.id);
-
-      // Asignar el ID de la venta a los detalles antes de guardarlos
-      detallesVenta.forEach(detalle => detalle.id_venta = ventaGuardada.id!);
-      await transactionalEntityManager.save(DetalleVenta, detallesVenta);
-      ventaGuardada.detalles = detallesVenta; // Asignar los detalles persistidos
-      console.log("[procesarVenta] Detalles de venta guardados y asociados a la venta.");
-
-
-      // --- 9. Registrar el movimiento de caja (INGRESO) utilizando la función auxiliar interna ---
-      const datosMovimientoCaja: RegistrarMovimientoCajaDatos = {
-        id_venta: ventaGuardada.id,
-        id_caja: datosVenta.id_caja,
-        monto: ventaGuardada.total,
-        tipo: tipoMovimientoVenta.id!, // Usamos el ID del tipo de movimiento 'Venta' (INGRESO)
-        id_colaborador: datosVenta.id_colaborador,
-        id_metodo_pago: datosVenta.id_metodo_pago_principal,
-        id_factura: ventaGuardada.id, // Vinculamos el movimiento a la Venta recién creada
-        detalle: datosVenta.observaciones_venta || `Venta #${ventaGuardada.id} - ${tipoComprobante}`,
-      };
-
-      // Llamada a la función auxiliar que opera dentro de esta misma transacción
-      const movimientoCaja = await _registrarMovimientoCajaInterno(transactionalEntityManager, datosMovimientoCaja);
-      console.log("[procesarVenta] Movimiento de caja por venta registrado:", movimientoCaja);
-
-      // --- 10. Retornar la Venta y el Movimiento de Caja ---
-      return { venta: ventaGuardada, movimientoCaja: movimientoCaja };
-
-    } catch (error: unknown) {
-      console.error("[procesarVenta] Error al procesar la venta:", error);
-      // El error se re-lanza, y la transacción de TypeORM se encargará del rollback
-      throw new Error((error as Error).message || "No se pudo procesar la venta. Por favor, inténtalo de nuevo más tarde.");
-    }
-  });
-};*/
-
 const validarDatosInicialesVenta = (datosVenta: RegistrarVenta): void => {
   if (!datosVenta.id_caja || !datosVenta.id_colaborador || !datosVenta.id_metodo_pago_principal || !datosVenta.items || datosVenta.items.length === 0) {
     throw new Error("Datos de venta incompletos. Se requieren ID de caja, colaborador, método de pago principal y al menos un ítem.");
@@ -824,12 +694,27 @@ const registrarMovimientoCajaVenta = async (
   return movimientoCaja;
 };
 
+const pad = (num: string | number, size: number): string => {
+  let s = String(num);
+  while (s.length < size) {
+    s = "0" + s;
+  }
+  return s;
+};
+
+
+
 // --- Función principal de procesamiento de venta refactorizada ---
-export const procesarVenta = async (datosVenta: RegistrarVenta): Promise<{ venta: Venta; movimientoCaja: MovimientoCaja }> => {
+
+
+
+export const procesarVenta = async (datosVenta: RegistrarVenta): Promise<{
+  DocumentoVenta: any; venta: Venta; movimientoCaja: MovimientoCaja 
+}> => {
   return await AppDataSource.manager.transaction(async (transactionalEntityManager) => {
     try {
       console.log("[procesarVenta] Iniciando proceso de venta:", datosVenta);
-
+      let comprobantePdfBase64: string | undefined;
       // 1. Validaciones iniciales
       validarDatosInicialesVenta(datosVenta);
 
@@ -839,9 +724,51 @@ export const procesarVenta = async (datosVenta: RegistrarVenta): Promise<{ venta
         datosVenta
       );
 
+      // --- PASO CLAVE: Obtener códigos de establecimiento y punto de emisión ---
+      const negocio = await transactionalEntityManager.findOne(Negocio, { where: { id: caja.id_negocio } });
+      if (!negocio) {
+        throw new Error("No se encontró el negocio asociado a la caja.");
+      }
+
+      const codigoEstablecimiento = negocio.codigo_establecimiento; // EEE
+      const codigoPuntoEmisionMovil = colaborador.codigo_punto_emision_movil; // PPP
+
+      if (!codigoEstablecimiento || !codigoPuntoEmisionMovil) {
+        throw new Error("Códigos de establecimiento o punto de emisión no definidos para generar el comprobante.");
+      }
+      // --------------------------------------------------------------------------
+
       // 3. Determinar el tipo de comprobante
       const tipoComprobante = datosVenta.requiere_factura_formal ? 'FACTURA' : 'COMPROBANTE_SIMPLE';
       console.log(`[procesarVenta] Tipo de comprobante determinado: ${tipoComprobante}`);
+
+      // --- PASO CLAVE: Generar el numero_comprobante secuencial ---
+      let comprobanteCounter = await transactionalEntityManager.findOne(ComprobanteCounter, {
+        where: {
+          codigo_establecimiento: codigoEstablecimiento,
+          codigo_punto_emision_movil: codigoPuntoEmisionMovil,
+        },
+      });
+
+      if (!comprobanteCounter) {
+        // Si no existe el contador, crearlo e inicializarlo en 1
+        comprobanteCounter = transactionalEntityManager.create(ComprobanteCounter, {
+          codigo_establecimiento: codigoEstablecimiento,
+          codigo_punto_emision_movil: codigoPuntoEmisionMovil,
+          last_sequence_number: 1,
+        });
+      } else {
+        // Si ya existe, incrementar el contador
+        comprobanteCounter.last_sequence_number += 1;
+      }
+
+      // Guardar (insertar o actualizar) el contador DENTRO de la transacción
+      await transactionalEntityManager.save(ComprobanteCounter, comprobanteCounter);
+
+      const numeroSecuencial = pad(comprobanteCounter.last_sequence_number, 9);
+      const numeroComprobanteGenerado = `${pad(codigoEstablecimiento, 3)}-${pad(codigoPuntoEmisionMovil, 3)}-${numeroSecuencial}`;
+      console.log(`[procesarVenta] Número de comprobante generado: ${numeroComprobanteGenerado}`);
+      // ---------------------------------------------------------------
 
       // 4. Preparar la Venta inicial
       const nuevaVenta = transactionalEntityManager.create(Venta, {
@@ -850,8 +777,8 @@ export const procesarVenta = async (datosVenta: RegistrarVenta): Promise<{ venta
         id_colaborador: datosVenta.id_colaborador,
         id_metodo_pago_principal: metodoPago.id,
         tipo_comprobante: tipoComprobante,
-        numero_comprobante: '001', // Esto podría necesitar una lógica de secuencia
-        estado: 'EMITIDA',
+        numero_comprobante: numeroComprobanteGenerado, // <-- ¡Aquí se usa el número generado!
+        estado: 'EMITIDA', // Por ahora EMITIDA, luego se podría cambiar a 'PENDIENTE_SRI' o similar
         fecha_venta: new Date(),
         observaciones: datosVenta.observaciones_venta ?? '',
         subtotal: 0.00,
@@ -865,7 +792,7 @@ export const procesarVenta = async (datosVenta: RegistrarVenta): Promise<{ venta
       const { totalSubtotal, detallesVenta } = await prepararDetallesVentaYActualizarStock(
         transactionalEntityManager,
         datosVenta,
-        caja.id_negocio! // Asumimos que id_negocio de caja no será null aquí.
+        caja.id_negocio!
       );
 
       // 6. Calcular Subtotal, IVA y Total de la Venta
@@ -873,6 +800,48 @@ export const procesarVenta = async (datosVenta: RegistrarVenta): Promise<{ venta
 
       // 7. Guardar la Venta y sus Detalles
       const ventaGuardada = await guardarVentaYDetalles(transactionalEntityManager, nuevaVenta, detallesVenta);
+
+      // --- Lógica para Facturación SRI ---
+      if (datosVenta.requiere_factura_formal) {
+        console.log("[procesarVenta] La venta requiere factura formal. Llamando a facturarSRI...");
+        const sriResult = await facturarSRI(
+          transactionalEntityManager,
+          ventaGuardada,
+          negocio,
+          colaborador,
+          detallesVenta // Pasamos los detalles de la venta al servicio SRI
+        );
+
+        if (!sriResult) {
+          // Aquí manejarías un error si la facturación SRI falla
+          throw new Error("La facturación electrónica al SRI falló.");
+        }
+        // En este punto, podrías actualizar el estado de `ventaGuardada`
+        // por ejemplo: ventaGuardada.estado = 'AUTORIZADA_SRI';
+        // await transactionalEntityManager.save(Venta, ventaGuardada);
+      }else{
+
+          console.log("[procesarVenta] La venta NO requiere factura formal. Generando comprobante simple...");
+          comprobantePdfBase64 = await generarComprobanteSimple(
+            transactionalEntityManager,
+            ventaGuardada,
+            negocio,
+            colaborador,
+            detallesVenta
+          );
+          if (comprobantePdfBase64) {
+            // El PDF se generó exitosamente, puedes guardarlo o enviarlo
+            console.log("Comprobante PDF generado exitosamente.");
+            // Aquí puedes almacenar pdfBase64 en la base de datos o enviarlo.
+          } else {
+            // Hubo un error al generar el PDF, pero la venta se completó
+            console.warn("No se pudo generar el comprobante PDF para la venta. La venta sigue siendo válida.");
+            // Podrías registrar este evento en un sistema de logs o notificar a un administrador.
+          }
+
+
+      }
+      // ------------------------------------
 
       // 8. Registrar el movimiento de caja
       const movimientoCaja = await registrarMovimientoCajaVenta(
@@ -884,7 +853,7 @@ export const procesarVenta = async (datosVenta: RegistrarVenta): Promise<{ venta
       );
 
       // 9. Retornar la Venta y el Movimiento de Caja
-      return { venta: ventaGuardada, movimientoCaja: movimientoCaja };
+      return { venta: ventaGuardada, movimientoCaja: movimientoCaja, DocumentoVenta : comprobantePdfBase64 };
 
     } catch (error: unknown) {
       console.error("[procesarVenta] Error al procesar la venta:", error);

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import * as CajaService from '../services/CajaServices'; 
-import { AbrirCajaDatos, RegistrarMovimientoCajaDatos, RegistrarVenta } from '../interfaces/CajaInterfaces'; 
+import { AbrirCajaDatos, CerrarCajaDatos, RegistrarMovimientoCajaDatos, RegistrarVenta } from '../interfaces/CajaInterfaces'; 
 import { MovimientoCaja } from '../entities/MovimientoCajas';
 
 interface CustomRequest extends Request {
@@ -62,6 +62,66 @@ export class CajaController {
       res.status(400).json({ mensaje: (error as Error).message || "Error interno del servidor al abrir la caja." });
     }
   }
+
+   static async cerrarCaja(req: CustomRequest, res: Response) {
+    try {
+      // 1. Verificar autenticación del usuario
+      if (!req.user) {
+        return res.status(401).json({ mensaje: "Usuario no autenticado." });
+      }
+
+      // 2. Control de Acceso Basado en Rol (RBAC)
+      // Solo un Colaborador puede cerrar su propia caja o, potencialmente, un Administrador
+      // Para este ejemplo, solo permitimos al 'Colaborador' cerrar cajas.
+      // Puedes ajustar esta lógica si otros roles (ej. 'Administrador') también pueden cerrar cajas.
+      if (req.user.rolNombre !== 'Colaborador') {
+        console.warn(`Intento de cerrar caja por usuario no autorizado: ${req.user.correo} (Rol: ${req.user.rolNombre})`);
+        return res.status(403).json({ mensaje: "Acceso denegado. Solo los colaboradores pueden cerrar cajas." });
+      }
+
+      // 3. Obtener el ID del colaborador del token JWT
+      const id_colaborador = req.user.id; // Asumiendo que el ID del usuario es el ID del colaborador
+
+      // 4. Obtener los datos del cuerpo de la solicitud
+      const { id_caja, total_final_efectivo, observaciones, id_negocio } = req.body;
+
+      // 5. Validaciones para asegurar que id_caja y total_final_efectivo sean válidos
+      if (typeof id_caja !== 'number' || isNaN(id_caja)) {
+        return res.status(400).json({ mensaje: "El ID de la caja es obligatorio y debe ser un número válido." });
+      }
+      if (typeof total_final_efectivo !== 'number' || isNaN(total_final_efectivo) || total_final_efectivo < 0) {
+        return res.status(400).json({ mensaje: "El total final de efectivo es obligatorio y debe ser un número positivo." });
+      }
+      if (typeof id_negocio !== 'number' || isNaN(id_negocio)) {
+        return res.status(400).json({ mensaje: "El ID del negocio es obligatorio y debe ser un número válido." });
+      }
+
+
+      // 6. Preparar los datos para el servicio
+      const datosCerrarCaja: CerrarCajaDatos = {
+        id_caja: id_caja,
+        id_colaborador: id_colaborador,
+        id_negocio: id_negocio,
+        total_final_efectivo: total_final_efectivo,
+        observaciones: observaciones || null, // Las observaciones pueden ser opcionales
+      };
+
+      // 7. Llamar al servicio para cerrar la caja
+      const cajaCerrada = await CajaService.cerrarCaja(datosCerrarCaja);
+
+      // 8. Enviar la respuesta de éxito
+      res.status(200).json({
+        mensaje: "Caja cerrada exitosamente.",
+        caja: cajaCerrada,
+      });
+
+    } catch (error: unknown) {
+      console.error("Error en CajaController.cerrarCaja:", error);
+      // Puedes refinar los mensajes de error según el tipo de error lanzado por el servicio
+      res.status(400).json({ mensaje: (error as Error).message || "Error interno del servidor al cerrar la caja." });
+    }
+  }
+
 
   static async obtenerCajaActiva(req: CustomRequest, res: Response) {
     try {
@@ -197,6 +257,7 @@ export class CajaController {
         mensaje: "Venta procesada y movimiento de caja registrado exitosamente.",
         venta: resultadoVenta.venta,
         movimientoCaja: resultadoVenta.movimientoCaja,
+        DocumentoVenta: resultadoVenta.DocumentoVenta
       });
 
     } catch (error: unknown) {

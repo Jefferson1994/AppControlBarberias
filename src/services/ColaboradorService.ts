@@ -15,7 +15,7 @@ import { Rol } from "../entities/Rol"; // Necesario para verificar el rol del us
  * @throws {Error} Si el negocio o usuario no existen, el usuario no es 'Colaborador',
  * o si el usuario ya es un colaborador ACTIVO de ese negocio.
  */
-export const agregarColaboradorANegocio = async (idNegocio: number, idUsuario: number): Promise<Colaborador> => {
+export const agregarColaboradorANegocio = async (idNegocio: number, idUsuario: number ,codigo_punto_emision_movil:string): Promise<Colaborador> => {
   return await AppDataSource.manager.transaction(async (transactionalEntityManager) => {
     // 1. Verificar la existencia del Negocio y cargar su nombre
     const negocio = await transactionalEntityManager.findOne(Negocio, { where: { id: idNegocio } });
@@ -71,7 +71,8 @@ export const agregarColaboradorANegocio = async (idNegocio: number, idUsuario: n
     const nuevoColaborador = transactionalEntityManager.create(Colaborador, {
       id_usuario: idUsuario,
       id_negocio: idNegocio,
-      activo: true, // Siempre se agrega como activo (1) por primera vez
+      codigo_punto_emision_movil: codigo_punto_emision_movil, 
+      activo: true, 
     });
 
     // 7. Guardar la nueva instancia de Colaborador

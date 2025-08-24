@@ -31,6 +31,9 @@ export class Colaborador {
   @Column({ type: 'int', nullable: false, default: 0 }) // No nulo, con un valor por defecto de 0
   porcentaje_ganancia!: number;
 
+   @Column({ type: 'varchar', length: 3, nullable: true, unique: true }) // Hacemos `nullable: true` por si algún colaborador no es móvil o aún no se le asigna
+  codigo_punto_emision_movil!: string | null;
+
   @Column({ type: 'bit', default: true, nullable: false }) // CORRECCIÓN: Cambiado a 'bit' para MSSQL
   activo!: boolean;
 
