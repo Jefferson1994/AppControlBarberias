@@ -24,7 +24,7 @@ import {ParametroSistema } from '../entities/ParametrosSistema'
 import {ComprobanteCounter } from '../entities/ComprobanteCounter'
 
 //cadeana local
-export const AppDataSource = new DataSource({
+/*export const AppDataSource = new DataSource({
   type: 'mssql',
   host: 'localhost', // o LAPTOP-UA0JFMK2
   port: 1433,
@@ -42,10 +42,10 @@ export const AppDataSource = new DataSource({
     encrypt: false,
     enableArithAbort: true,
   },
-});
+});*/
 
 
-/*export const AppDataSource = new DataSource({
+export const AppDataSource = new DataSource({
   type: 'mssql',
   host: 'SQL1004.site4now.net', // Actualizado según "Data Source"
   port: 1433, // Puerto predeterminado para SQL Server, generalmente 1433
@@ -63,11 +63,14 @@ export const AppDataSource = new DataSource({
     Servicio,Rol,
     Otp,TipoOtp,
     TipoEmpresa,DatosContactoEmpresa,
-    TipoProducto,TipoServicio
+    TipoProducto,TipoServicio,
+    TipoMovimientoCaja,Venta,
+    DetalleVenta,ParametroSistema,
+    ComprobanteCounter
   ],
   options: {
     encrypt: true, // Activar encriptación para conexiones a SQL Azure, o si tu servidor lo requiere
     trustServerCertificate: true, // Cambiar a false en producción y proporcionar certificados CA válidos
     enableArithAbort: true, // Habilita la validación de errores aritméticos
   },
-});*/
+});
