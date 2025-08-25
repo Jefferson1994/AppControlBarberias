@@ -474,14 +474,14 @@ export const registrarMovimientoCaja = async (datos: RegistrarMovimientoCajaDato
       // 7. Actualizar el total_real de la Caja
       // La lógica de suma/resta se basa ahora en el `codigo` del TipoMovimientoCaja
       if (tipoMovimiento.codigo === 'INGRESO') {
-        caja.total_real += datos.monto;
+        caja.total_real! += datos.monto;
         console.log(`[registrarMovimientoCaja] Tipo: INGRESO. Nuevo total real de caja: ${caja.total_real}`);
       } else if (tipoMovimiento.codigo === 'EGRESO') {
-        if (caja.total_real < datos.monto) {
+        if (caja.total_real! < datos.monto) {
           console.warn(`[registrarMovimientoCaja] Advertencia: EGRESO de ${datos.monto} excede el total actual de caja ${caja.total_real}.`);
           // Opcional: throw new Error("Monto de EGRESO excede el efectivo actual en caja.");
         }
-        caja.total_real -= datos.monto;
+        caja.total_real! -= datos.monto;
         console.log(`[registrarMovimientoCaja] Tipo: EGRESO. Nuevo total real de caja: ${caja.total_real}`);
       } else {
         // Esto debería ser capturado por la validación anterior, pero es un fallback seguro
