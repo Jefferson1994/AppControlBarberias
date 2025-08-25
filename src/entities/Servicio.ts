@@ -10,6 +10,7 @@ import {
 import { Negocio } from './Negocio'; // Importar Negocio
 import { DetalleFactura } from './DetalleFactura'; // Importar DetalleFactura
 import { TipoServicio } from './TipoServicio'; // Importar TipoServicio
+import { DetalleVenta } from './DetalleVenta';
 
 @Entity('servicios') // Nombre de la tabla en la base de datos
 export class Servicio {
@@ -57,4 +58,7 @@ export class Servicio {
   @ManyToOne(() => TipoServicio, (tipoServicio) => tipoServicio.servicios)
   @JoinColumn({ name: 'id_tipo_servicio' })
   tipoServicio!: TipoServicio; // Propiedad para acceder al objeto TipoServicio relacionado
+  
+  @OneToMany(() => DetalleVenta, (detalleVenta) => detalleVenta.producto)
+  detallesVenta!: DetalleVenta[];
 }

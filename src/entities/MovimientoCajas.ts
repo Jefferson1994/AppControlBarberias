@@ -13,6 +13,7 @@ import { Caja } from './Cajas'; // Importar Caja
 import { MetodoPago } from './Metodo_Pago'; // Importar MetodoPago
 import { Factura } from './Facturas'; // Importar Factura
 import { TipoMovimientoCaja } from './TipoMovimientoCaja';
+import { Venta } from './Venta';
 
 @Entity('movimientos_caja')
 export class MovimientoCaja {
@@ -59,8 +60,12 @@ export class MovimientoCaja {
   @JoinColumn({ name: 'id_factura' })
   factura!: Factura;
 
-  @ManyToOne(() => TipoMovimientoCaja, (tipoMovimientoCaja) => tipoMovimientoCaja.movimientosCaja)
-  @JoinColumn({ name: 'id_tipo_movimiento_caja' }) // Especifica que 'id_tipo_movimiento_caja' es la clave foránea
+  @ManyToOne(() => TipoMovimientoCaja, { eager: false, nullable: false })
+  @JoinColumn({ name: 'id_tipo_movimiento_caja' })
   tipoMovimientoCaja!: TipoMovimientoCaja;
+
+  @ManyToOne(() => Venta, { eager: false, nullable: true }) // Debe apuntar a la entidad Venta
+  @JoinColumn({ name: 'id_venta' }) // La columna FK en movimientos_caja
+  ventas!: Venta | null; // El nombre de la propiedad en la entidad
 
 }

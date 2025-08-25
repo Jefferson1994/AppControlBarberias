@@ -11,6 +11,7 @@ import {
 import { Negocio } from './Negocio'; // Importar Negocio
 import { DetalleFactura } from './DetalleFactura'; // Importar DetalleFactura
 import { TipoProducto } from './TipoProducto'; // Importar TipoProducto
+import { DetalleVenta } from './DetalleVenta';
 
 @Entity('productos')
 export class Producto {
@@ -61,4 +62,7 @@ export class Producto {
   @ManyToOne(() => TipoProducto, (tipoProducto) => tipoProducto.productos)
   @JoinColumn({ name: 'id_tipo_producto' })
   tipoProducto!: TipoProducto; // No es nullable aquí porque la FK es NOT NULL
+
+  @OneToMany(() => DetalleVenta, (detalleVenta) => detalleVenta.producto)
+    detallesVenta!: DetalleVenta[];
 }

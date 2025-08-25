@@ -10,6 +10,8 @@ import {
 } from 'typeorm';
 
 import { Venta } from './Venta'; // Asegúrate de que la ruta sea correcta
+import { Producto } from './Producto';
+import { Servicio } from './Servicio';
 
 @Entity('detalles_venta')
 export class DetalleVenta {
@@ -41,5 +43,14 @@ export class DetalleVenta {
 
   @ManyToOne(() => Venta, (venta) => venta.detalles)
   @JoinColumn({ name: 'id_venta' }) // Nombre de la columna en la tabla detalles_venta que referencia a ventas.id
-  venta!: Venta; // La relación con la Venta padre (ahora sin '?' porque id_venta es nullable: false)
+  ventas!: Venta; // La relación con la Venta padre (ahora sin '?' porque id_venta es nullable: false)
+
+  @ManyToOne(() => Producto, (producto) => producto.detallesVenta, { nullable: true })
+  @JoinColumn({ name: 'id_producto' }) // Columna en detalles_venta que referencia a productos.id
+  producto!: Producto | null; // El producto asociado a este detalle de venta
+
+  // Relación ManyToOne con Servicio (opcional)
+  @ManyToOne(() => Servicio, (servicio) => servicio.detallesVenta, { nullable: true })
+  @JoinColumn({ name: 'id_servicio' }) // Columna en detalles_venta que referencia a servicios.id
+  servicio!: Servicio | null; // El servicio asociado a este detalle de venta
 }

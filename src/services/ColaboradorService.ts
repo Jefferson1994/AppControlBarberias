@@ -33,7 +33,7 @@ export const agregarColaboradorANegocio = async (idNegocio: number, idUsuario: n
     }
 
     // 3. Verificar que el Usuario tenga el rol de 'Colaborador'
-    if (!usuario.rol || usuario.rol.nombre !== 'Colaborador') {
+    if (!usuario.rol || usuario.rol.nombre == 'Colaborador'|| usuario.rol.nombre == 'Administrador') {
       throw new Error(`El usuario con ID ${idUsuario} no tiene el rol de 'Colaborador'.`);
     }
 

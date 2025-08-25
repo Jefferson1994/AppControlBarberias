@@ -23,61 +23,49 @@ import { EntityManager, In } from "typeorm"; // Importar 'In' para consultas WHE
 /**
  */
 export const abrirCaja = async (datos: AbrirCajaDatos): Promise<Caja> => {
-  
-
   return await AppDataSource.manager.transaction(async (transactionalEntityManager) => {
     try {
       // 1. Validaciones básicas de campos obligatorios
-      
-      if (!datos.id_colaborador) { 
-        
+      if (!datos.id_colaborador) {
         throw new Error("El ID del colaborador es obligatorio para abrir la caja.");
       }
       if (!datos.id_negocio) {
-        
         throw new Error("El ID del negocio es obligatorio para abrir la caja.");
       }
-      
 
       // 2. Verificar existencia y estado del colaborador
-      
-      const colaboradorRepository = transactionalEntityManager.getRepository(Colaborador); // Usamos Colaborador aquí, que es tu entidad para Colaborador
+      const colaboradorRepository = transactionalEntityManager.getRepository(Colaborador);
       const colaborador = await colaboradorRepository.findOne({
-        where: { id_usuario: datos.id_colaborador, id_negocio: datos.id_negocio }, // Buscar por id_usuario y id_negocio
-        relations: ['usuario', 'negocio'], // Cargar el usuario y el negocio para más detalles en errores
+        where: { id_usuario: datos.id_colaborador, id_negocio: datos.id_negocio },
+        relations: ['usuario', 'negocio'],
       });
-      
+
       if (!colaborador) {
-        
-        throw new Error(`Colaborador con ID ${datos.id_colaborador} no encontrado.`); 
+        throw new Error(`Colaborador con ID de usuario ${datos.id_colaborador} no encontrado para el negocio.`);
       }
-      
-      if (colaborador.activo === false) { // Asumiendo 'false' para inactivo
-        
-        throw new Error(`El colaborador '${colaborador.usuario?.nombre || datos.id_colaborador}' está inactivo y no puede abrir una caja.`); // Cambiado a colaborador
+
+      if (colaborador.activo === false) {
+        throw new Error(`El colaborador '${colaborador.usuario?.nombre || datos.id_colaborador}' está inactivo y no puede abrir una caja.`);
       }
-      
 
       // 3. Verificar existencia del negocio
-      
       const negocioRepository = transactionalEntityManager.getRepository(Negocio);
       const negocio = await negocioRepository.findOne({
         where: { id: datos.id_negocio },
       });
 
       if (!negocio) {
-        
         throw new Error(`Negocio con ID ${datos.id_negocio} no encontrado.`);
       }
-      
-      if (negocio.activo === 0) { // Asumiendo '0' para inactivo
+
+      if (negocio.activo === 0) {
         console.log(`[abrirCaja] Error de Estado: Negocio '${negocio.nombre}' está inactivo.`);
         throw new Error(`El negocio '${negocio.nombre}' está inactivo y no puede tener cajas abiertas.`);
       }
 
+      // Validación de horario de apertura
       if (negocio.horario_apertura) {
         const [horas, minutos, segundos] = negocio.horario_apertura.split(':').map(Number);
-        
         const ahora = new Date();
         const horaAperturaNegocio = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), horas, minutos, segundos);
 
@@ -95,51 +83,76 @@ export const abrirCaja = async (datos: AbrirCajaDatos): Promise<Caja> => {
       } else {
         console.warn("[abrirCaja] Advertencia: Horario de apertura del negocio no definido. No se aplicó la validación de horario de apertura.");
       }
-      
-
 
       // 4. Verificar si ya existe una caja ABIERTA para este colaborador en este negocio
-     
       const cajaRepository = transactionalEntityManager.getRepository(Caja);
       const cajaAbiertaExistente = await cajaRepository.findOne({
         where: {
-          id_Colaborador: colaborador.id, 
+          id_Colaborador: colaborador.id,
           id_negocio: datos.id_negocio,
-          estado: 1, 
+          estado: 1, // Asumiendo '1' para ABIERTA
         },
       });
 
       if (cajaAbiertaExistente) {
-        
-        throw new Error(`Ya existe una caja abierta para el colaborador ${colaborador.usuario?.nombre || datos.id_colaborador} en el negocio '${negocio.nombre}'. Cierre la caja actual antes de abrir una nueva.`); // Cambiado a colaborador
+        throw new Error(`Ya existe una caja abierta para el colaborador ${colaborador.usuario?.nombre || datos.id_colaborador} en el negocio '${negocio.nombre}'. Cierre la caja actual antes de abrir una nueva.`);
       }
 
-      if(negocio.horario_apertura){
-
-      }
-      
-
-      // 5. Crear la nueva instancia de Caja
-      
-      const nuevaCaja = transactionalEntityManager.create(Caja, {
-        id_Colaborador: colaborador.id, // 
-        id_negocio: datos.id_negocio,
-        fecha_apertura: new Date(), // Se establecerá con la fecha y hora actual
-        total_esperado: datos.total_inicial_efectivo ?? 0.00, // Usar 0 si no se proporciona
-        total_real: datos.total_inicial_efectivo ?? 0.00,    // El real es igual al esperado al inicio
-        observaciones: datos.observaciones ?? null,
-        estado: 1, 
+      // 5. Obtener el tipo de movimiento 'Apertura de Caja'
+      const tipoMovimientoCajaRepository = transactionalEntityManager.getRepository(TipoMovimientoCaja);
+      const tipoMovimiento = await tipoMovimientoCajaRepository.findOne({
+        where: { activo: 1, nombre: 'Apertura de Caja' },
       });
+
+      if (!tipoMovimiento) {
+        throw new Error(`No existe el tipo de movimiento para aperturar la caja.`);
+      }
+
+      // 6. Obtener el método de pago 'Efectivo' (más robusto buscar por nombre)
+      const metodoPagoRepository = transactionalEntityManager.getRepository(MetodoPago);
+      const metodoPago = await metodoPagoRepository.findOne({
+        where: { activo: true, nombre: 'Efectivo' }, // Buscar por nombre para mayor claridad y robustez
+      });
+
+      if (!metodoPago) {
+        throw new Error(`No existe el método de pago 'Efectivo' para aperturar la caja.`);
+      }
+
+      // 7. Crear la nueva instancia de Caja y GUARDARLA para obtener su ID
+      const nuevaCaja = transactionalEntityManager.create(Caja, {
+        id_Colaborador: colaborador.id,
+        id_negocio: datos.id_negocio,
+        fecha_apertura: new Date(),
+        monto_inicial: datos.total_inicial_efectivo ?? 0.00,
+        total_esperado: datos.total_inicial_efectivo ?? 0.00,
+        total_real: datos.total_inicial_efectivo ?? 0.00,
+        observaciones: datos.observaciones ?? null,
+        estado: 1,
+      });
+
+      const cajaGuardada = await transactionalEntityManager.save(Caja, nuevaCaja); // ¡Guardar aquí para obtener el ID!
       
-      const cajaGuardada = await transactionalEntityManager.save(Caja, nuevaCaja);
-      
+      // 8. Crear el movimiento de apertura de caja usando el ID de la caja guardada
+      const nuevoMovimiento = transactionalEntityManager.create(MovimientoCaja, {
+        id_caja: cajaGuardada.id, // Usamos el ID de la caja ya guardada
+        monto: cajaGuardada.monto_inicial,
+        id_tipo_movimiento_caja: tipoMovimiento.id,
+        id_metodo_pago: metodoPago.id,
+        id_venta: null, // Más apropiado usar null si no hay venta asociada
+        detalle: 'Apertura de caja',
+        tipo_transaccion: 'INGRESO', // Añadir el tipo de transacción
+        fecha_movimiento: new Date(), // Añadir la fecha de movimiento
+        observaciones: datos.observaciones || "Apertura de caja.", // Añadir observaciones
+      });
+
+      await transactionalEntityManager.save(MovimientoCaja, nuevoMovimiento); // Guardar el movimiento
+
       return cajaGuardada;
     } catch (error: unknown) {
-      
+      console.error("[abrirCaja] Error al abrir la caja:", error);
       throw new Error((error as Error).message || "No se pudo abrir la caja. Por favor, inténtalo de nuevo más tarde.");
-    } finally {
-      
     }
+    // El bloque finally está vacío y se puede omitir.
   });
 };
 
@@ -151,16 +164,18 @@ export const cerrarCaja = async (datos: CerrarCajaDatos): Promise<Caja> => {
         console.error("[cerrarCaja] Error: El ID de la caja es obligatorio para cerrarla.");
         throw new Error("El ID de la caja es obligatorio para cerrarla.");
       }
-      
-      // Se añade una advertencia si no se proporciona el total final de efectivo
+
       if (datos.total_final_efectivo === undefined || datos.total_final_efectivo === null) {
-        console.warn("[cerrarCaja] Advertencia: No se proporcionó 'total_final_efectivo'. La caja se cerrará sin registrar el monto real, lo que impedirá la conciliación.");
+        console.error("[cerrarCaja] Error: 'total_final_efectivo' es obligatorio para cerrar la caja y realizar la conciliación.");
+        throw new Error("'total_final_efectivo' es obligatorio para cerrar la caja y realizar la conciliación.");
       }
 
-      // 2. Obtener el repositorio de la entidad Caja para interactuar con la base de datos.
+      // 2. Obtener los repositorios de las entidades necesarias.
       const cajaRepository = transactionalEntityManager.getRepository(Caja);
+      const colaboradorRepository = transactionalEntityManager.getRepository(Colaborador);
+      const movimientoCajaRepository = transactionalEntityManager.getRepository(MovimientoCaja);
 
-      // Buscar la caja que se intenta cerrar por su ID.
+      // Buscar la caja por su ID y cargar las relaciones con el colaborador y negocio.
       const caja = await cajaRepository.findOne({
         where: { id: datos.id_caja },
         relations: ['Colaborador', 'negocio']
@@ -172,27 +187,27 @@ export const cerrarCaja = async (datos: CerrarCajaDatos): Promise<Caja> => {
       }
 
       // 3. Verificar el estado actual de la caja.
-      if (caja.estado !== 1) {
+      if (caja.estado !== 1) { // 1 = Abierta
         const estadoCaja = caja.estado === 0 ? "cerrada" : "en un estado desconocido";
         console.error(`[cerrarCaja] Error: La caja con ID ${datos.id_caja} ya está ${estadoCaja}.`);
         throw new Error(`La caja con ID ${datos.id_caja} no está abierta o ya ha sido cerrada.`);
       }
 
       // 4. Validaciones adicionales de seguridad (opcional).
+      let colaboradorQueCierra: Colaborador | null = null;
       if (datos.id_colaborador) {
-        const colaboradorRepository = transactionalEntityManager.getRepository(Colaborador);
-        const colaboradorQueCierra = await colaboradorRepository.findOne({
+        colaboradorQueCierra = await colaboradorRepository.findOne({
           where: { id_usuario: datos.id_colaborador, id_negocio: caja.id_negocio },
         });
 
         if (!colaboradorQueCierra) {
-            console.error(`[cerrarCaja] Error: Colaborador con ID de usuario ${datos.id_colaborador} no encontrado para el negocio de la caja.`);
-            throw new Error(`El colaborador con ID de usuario ${datos.id_colaborador} no está asociado al negocio de esta caja.`);
+          console.error(`[cerrarCaja] Error: Colaborador con ID de usuario ${datos.id_colaborador} no encontrado para el negocio de la caja.`);
+          throw new Error(`El colaborador con ID de usuario ${datos.id_colaborador} no está asociado al negocio de esta caja.`);
         }
 
         if (caja.id_Colaborador !== colaboradorQueCierra.id) {
-            console.error(`[cerrarCaja] Error de autorización: El colaborador que intenta cerrar la caja (ID de usuario: ${datos.id_colaborador}) no coincide con el colaborador que la abrió (ID de colaborador: ${caja.id_Colaborador}).`);
-            throw new Error(`El colaborador que intenta cerrar la caja no es quien la abrió.`);
+          console.error(`[cerrarCaja] Error de autorización: El colaborador que intenta cerrar la caja (ID de usuario: ${datos.id_colaborador}) no coincide con el colaborador que la abrió (ID de colaborador: ${caja.id_Colaborador}).`);
+          throw new Error(`El colaborador que intenta cerrar la caja no es quien la abrió.`);
         }
       }
 
@@ -201,27 +216,138 @@ export const cerrarCaja = async (datos: CerrarCajaDatos): Promise<Caja> => {
         throw new Error(`El negocio especificado no coincide con el negocio de la caja abierta.`);
       }
 
-      // 5. Actualizar los campos de la caja para reflejar el cierre.
-      caja.fecha_cierre = new Date(); // Establece la fecha y hora actuales como fecha de cierre.
-      caja.estado = 0; // Cambia el estado de la caja a 'cerrada'.
+      // Obtener el colaborador que abrió la caja para obtener su porcentaje_ganancia como fallback
+      const colaboradorDeLaCaja = await colaboradorRepository.findOne({
+        where: { id: caja.id_Colaborador },
+      });
 
-      // Solo actualiza total_real si se proporcionó un total_final_efectivo
-      if (datos.total_final_efectivo !== undefined && datos.total_final_efectivo !== null) {
-        caja.total_real = datos.total_final_efectivo;
-      } else {
-        // Opcional: Podrías querer establecer un valor por defecto o dejar el actual.
-        // Si no se proporciona el total final, el total_real permanecerá como estaba antes del cierre.
-        // Esto enfatiza la falta de conciliación si no se envía este dato.
+      if (!colaboradorDeLaCaja) {
+        console.error(`[cerrarCaja] Error: No se encontró al colaborador con ID ${caja.id_Colaborador} asociado a la caja.`);
+        throw new Error(`No se encontró el colaborador que abrió esta caja.`);
       }
+
+      // Porcentaje de ganancia del colaborador de la caja, usado como fallback si el servicio no tiene uno específico.
+      const porcentajeGananciaColaboradorFallback = colaboradorDeLaCaja.porcentaje_ganancia || 0;
+
+
+      // 5. Calcular el 'total_sistema' a partir de los movimientos de caja y las comisiones de servicios.
+      const movimientosCaja = await movimientoCajaRepository.find({
+        where: {
+          id_caja: caja.id,
+          //anulado: 0 // Solo movimientos no anulados
+        },
+        relations: [
+          'tipoMovimientoCaja',
+          'ventas',                 // Carga la relación 'ventas' en MovimientoCaja (objeto Venta)
+          'ventas.detalles',        // Carga los 'detalles' de cada 'venta' (array de DetalleVenta)
+          'ventas.detalles.servicio' // Carga el 'servicio' de cada 'detalle' (objeto Servicio)
+        ]
+      });
+
+      
+
+      const cajaCerrada = await transactionalEntityManager.save(Caja, caja);
+
+      const tipoMovimientoCajaRepository = transactionalEntityManager.getRepository(TipoMovimientoCaja);
+      const tipoMovimiento = await tipoMovimientoCajaRepository.findOne({
+        where: { activo: 1, nombre: 'Cierre de Caja' },
+      });
+
+      if (!tipoMovimiento) {
+        throw new Error(`No existe el tipo de movimiento para aperturar la caja.`);
+      }
+
+      // 6. Obtener el método de pago 'Efectivo' (más robusto buscar por nombre)
+      const metodoPagoRepository = transactionalEntityManager.getRepository(MetodoPago);
+      const metodoPago = await metodoPagoRepository.findOne({
+        where: { activo: true, nombre: 'Efectivo' }, // Buscar por nombre para mayor claridad y robustez
+      });
+
+      if (!metodoPago) {
+        throw new Error(`No existe el método de pago 'Efectivo' para aperturar la caja.`);
+      }
+
+      let totalCalculadoPorSistema = caja.monto_inicial;
+      let totalComisionesGeneradas = 0;
+
+      for (const movimiento of movimientosCaja) {
+        // Verificar si es un movimiento de Ingreso (basado en el nombre del tipo de movimiento)
+        if (movimiento.tipoMovimientoCaja?.nombre === 'Ingreso') {
+          totalCalculadoPorSistema += movimiento.monto;
+
+          // Ahora 'movimiento.ventas' es de tipo 'Venta | null' y TypeScript sabrá que tiene 'detalles'
+          if (movimiento.ventas && movimiento.ventas.detalles && movimiento.ventas.detalles.length > 0) {
+            for (const detalle of movimiento.ventas.detalles) { // Accede a los detalles de la venta
+              // Verificar si el detalle de venta corresponde a un servicio y si el servicio está cargado
+              if (detalle.id_servicio !== null && detalle.servicio) {
+                let porcentajeComision = 0;
+
+                // Priorizar el porcentaje de comisión definido en el servicio
+                if (detalle.servicio.porcentaje_comision_colaborador !== null && detalle.servicio.porcentaje_comision_colaborador > 0) {
+                  porcentajeComision = detalle.servicio.porcentaje_comision_colaborador;
+                } else {
+                  // Si el servicio no tiene un porcentaje específico, usar el del colaborador de la caja
+                  porcentajeComision = porcentajeGananciaColaboradorFallback;
+                }
+
+                // Calcular la comisión para este servicio
+                const comisionPorServicio = detalle.subtotal * (porcentajeComision / 100);
+                totalComisionesGeneradas += comisionPorServicio;
+              }
+            }
+          }
+        } else {
+          // Si es un egreso, simplemente restar el monto.
+          totalCalculadoPorSistema -= movimiento.monto;
+        }
+      }
+
+      // Asignar los totales calculados y reales.
+      caja.total_calculado = totalCalculadoPorSistema + caja.monto_inicial;
+      caja.total_esperado = totalCalculadoPorSistema + caja.monto_inicial;
+      caja.total_real = caja.total_real|| 0;
+      caja.total_comisiones_generadas = totalComisionesGeneradas;
+
+      // 6. Calcular sobrante y faltante.
+      const diferencia = datos.total_final_efectivo - caja.total_calculado;
+
+      if (diferencia > 0) {
+        caja.sobrante = diferencia;
+        caja.faltante = 0.00;
+      } else if (diferencia < 0) {
+        caja.faltante = Math.abs(diferencia);
+        caja.sobrante = 0.00;
+      } else {
+        caja.sobrante = 0.00;
+        caja.faltante = 0.00;
+      }
+
+      // 7. Actualizar los campos de la caja para reflejar el cierre.
+      caja.fecha_cierre = new Date();
+      caja.estado = 0; // Cambia el estado de la caja a 'cerrada' (0).
 
       if (datos.observaciones !== undefined) {
         caja.observaciones = datos.observaciones;
       }
+      const cajaFinalizada = await transactionalEntityManager.save(Caja, caja);
+      // 8. Guarda los cambios de la caja en la base de datos dentro de la transacción.
+      
+      // 8. Crear el movimiento de apertura de caja usando el ID de la caja guardada
+      const nuevoMovimiento = transactionalEntityManager.create(MovimientoCaja, {
+        id_caja: cajaCerrada.id, // Usamos el ID de la caja ya guardada
+        monto: cajaCerrada.total_esperado,
+        id_tipo_movimiento_caja: tipoMovimiento.id,
+        id_metodo_pago: metodoPago.id,
+        id_venta: null, // Más apropiado usar null si no hay venta asociada
+        detalle: 'Cierre  de caja',
+        tipo_transaccion: 'EGRESO', // Añadir el tipo de transacción
+        fecha_movimiento: new Date(), // Añadir la fecha de movimiento
+        observaciones: datos.observaciones || "Cierre  de caja", // Añadir observaciones
+      });
 
-      // 6. Guarda los cambios de la caja en la base de datos dentro de la transacción.
-      const cajaCerrada = await transactionalEntityManager.save(Caja, caja);
+      await transactionalEntityManager.save(MovimientoCaja, nuevoMovimiento); // Guardar el movimiento
 
-      console.log(`[cerrarCaja] Caja con ID ${caja.id} cerrada exitosamente por el colaborador ${caja.Colaborador?.usuario?.nombre || caja.id_Colaborador}.`);
+      console.log(`[cerrarCaja] Caja con ID ${caja.id} cerrada exitosamente. Total comisiones generadas: ${totalComisionesGeneradas.toFixed(2)}.`);
       return cajaCerrada;
 
     } catch (error: unknown) {
@@ -231,6 +357,7 @@ export const cerrarCaja = async (datos: CerrarCajaDatos): Promise<Caja> => {
     }
   });
 };
+
 
 
 export const obtenerCajaActivaPorColaboradorYNegocio = async (idColaborador: number, idNegocio: number): Promise<Caja | null> => {
@@ -433,6 +560,7 @@ export const _registrarMovimientoCajaInterno = async (
     const metodoPago = await metodoPagoRepository.findOne({
       where: { id: datos.id_metodo_pago, activo: true },
     });
+    
 
     if (!metodoPago) {
       throw new Error(`Método de pago con ID ${datos.id_metodo_pago} no encontrado o inactivo.`);
@@ -464,20 +592,26 @@ export const _registrarMovimientoCajaInterno = async (
     });
     console.log("[_registrarMovimientoCajaInterno] Creando nuevo movimiento:", nuevoMovimiento);
 
+
+    if(!caja){
+      throw new Error(`Problemas con la caja `);
+    }
     // 7. Actualizar el total_real de la Caja
     if (tipoMovimiento.codigo === 'INGRESO') {
-      caja.total_real += datos.monto;
+      caja.total_real! += datos.monto || 0;
       console.log(`[_registrarMovimientoCajaInterno] Tipo: INGRESO. Nuevo total real de caja: ${caja.total_real}`);
     } else if (tipoMovimiento.codigo === 'EGRESO') {
-      if (caja.total_real < datos.monto) {
+      if (caja.total_real! < datos.monto) {
         console.warn(`[_registrarMovimientoCajaInterno] Advertencia: EGRESO de ${datos.monto} excede el total actual de caja ${caja.total_real}.`);
         // Opcional: throw new Error("Monto de EGRESO excede el efectivo actual en caja.");
       }
-      caja.total_real -= datos.monto;
+      caja.total_real! -= datos.monto ;
       console.log(`[_registrarMovimientoCajaInterno] Tipo: EGRESO. Nuevo total real de caja: ${caja.total_real}`);
     } else {
       throw new Error(`Tipo de movimiento inválido '${tipoMovimiento.codigo}'. Solo 'INGRESO' o 'EGRESO' son permitidos para el cálculo de caja.`);
     }
+
+    const cajaCerrada = await transactionalEntityManager.save(Caja, caja);
 
     // 8. Guardar los cambios en la Caja y el nuevo MovimientoCaja
     await transactionalEntityManager.save(Caja, caja);

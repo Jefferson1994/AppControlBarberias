@@ -17,7 +17,6 @@ import { MetodoPago } from './Metodo_Pago'; // Asume que tienes una entidad Meto
 import { DetalleVenta } from './DetalleVenta'; // Importa la entidad DetalleVenta
 
 @Entity('ventas') // Nombre de la tabla en la base de datos
-@Entity('ventas')
 
 export class Venta {
   // ===========================================================================
@@ -75,7 +74,11 @@ export class Venta {
   @JoinColumn({ name: 'id_metodo_pago_principal' }) // La columna 'id_metodo_pago_principal' ya existe y es manejada aquí
   metodoPagoPrincipal!: MetodoPago;
 
-  @OneToMany(() => DetalleVenta, (detalleVenta) => detalleVenta.venta, { cascade: true, eager: true })
+  @OneToMany(() => DetalleVenta, (detalleVenta) => detalleVenta.ventas, { cascade: true, eager: true })
   detalles!: DetalleVenta[];
+
+
+
+  
 }
 
