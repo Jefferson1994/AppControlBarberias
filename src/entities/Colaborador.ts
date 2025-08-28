@@ -12,6 +12,7 @@ import {
 import { Usuario } from './Usuario'; // Importar Usuario
 import { Negocio } from './Negocio'; // Importar Negocio
 import { Caja } from './Cajas'; // Importar Caja
+import { Reserva } from './Reserva';
 
 // Define una restricción UNIQUE compuesta en id_usuario y id_negocio.
 // Esto permite que un usuario sea colaborador en múltiples negocios,
@@ -48,4 +49,7 @@ export class Colaborador {
 
   @OneToMany(() => Caja, (caja) => caja.Colaborador)
   cajas!: Caja[];
+  
+  @OneToMany(() => Reserva, (reserva) => reserva.colaborador)
+  reservas!: Reserva[];
 }

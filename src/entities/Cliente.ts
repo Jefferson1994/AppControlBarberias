@@ -9,6 +9,7 @@ import {
   CreateDateColumn,
 } from 'typeorm';
 import { Factura } from './Facturas'; // Importar Factura 
+import { Reserva } from './Reserva';
 @Entity('clientes')
 export class Cliente {
   @PrimaryGeneratedColumn()
@@ -29,4 +30,7 @@ export class Cliente {
   // Relaciones
   @OneToMany(() => Factura, (factura) => factura.cliente)
   facturas!: Factura[];
+
+  @OneToMany(() => Reserva, (reserva) => reserva.cliente)
+  reservas!: Reserva[];
 }

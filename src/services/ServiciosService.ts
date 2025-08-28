@@ -61,6 +61,7 @@ export const crearServicio = async (datos: CrearActualizarServicioDatos): Promis
         id_negocio: datos.id_negocio,
         id_tipo_servicio: datos.id_tipo_servicio,
         descripcion: datos.descripcion === null ? null : datos.descripcion, // Manejar nulos/undefined
+        duracion_minutos:datos.duracion_minutos,
         activo: datos.activo === undefined ? 0 : datos.activo, // Por defecto, el servicio se crea como activo (0)
       };
 
@@ -126,6 +127,7 @@ export const actualizarServicio = async (id: number, datosActualizacion: Partial
         // Manejar explícitamente los campos de descuento para permitir nulls
         precio_descuento: datosActualizacion.precio_descuento === undefined ? servicioExistente.precio_descuento : datosActualizacion.precio_descuento,
         porcentaje_descuento: datosActualizacion.porcentaje_descuento === undefined ? servicioExistente.porcentaje_descuento : datosActualizacion.porcentaje_descuento,
+        duracion_minutos: datosActualizacion.duracion_minutos === undefined ? servicioExistente.duracion_minutos : datosActualizacion.duracion_minutos,
       });
 
       // 4. Guardar el servicio actualizado

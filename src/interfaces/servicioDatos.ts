@@ -8,4 +8,5 @@ export interface CrearActualizarServicioDatos {
   activo?: number; // Opcional para crear (default en entidad), útil para actualizar
   id_negocio: number; // Obligatorio para crear, no se actualiza
   id_tipo_servicio: number; // Obligatorio para crear, actualizable
+  duracion_minutos: number;
 }

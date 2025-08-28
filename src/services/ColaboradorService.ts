@@ -33,8 +33,8 @@ export const agregarColaboradorANegocio = async (idNegocio: number, idUsuario: n
     }
 
     // 3. Verificar que el Usuario tenga el rol de 'Colaborador'
-    if (!usuario.rol || usuario.rol.nombre == 'Colaborador'|| usuario.rol.nombre == 'Administrador') {
-      throw new Error(`El usuario con ID ${idUsuario} no tiene el rol de 'Colaborador'.`);
+    if (!usuario.rol || usuario.rol.nombre.trim() !== 'Colaborador') {
+      throw new Error(`El usuario con ID ${idUsuario} no tiene el rol de 'Colaborador'${usuario.rol.nombre}`);
     }
 
     // 4. VERIFICACIÓN CRÍTICA: Buscar si el usuario ya es un colaborador ACTIVO en CUALQUIER otro negocio.

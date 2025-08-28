@@ -11,6 +11,7 @@ import { Negocio } from './Negocio'; // Importar Negocio
 import { DetalleFactura } from './DetalleFactura'; // Importar DetalleFactura
 import { TipoServicio } from './TipoServicio'; // Importar TipoServicio
 import { DetalleVenta } from './DetalleVenta';
+import { Reserva } from './Reserva';
 
 @Entity('servicios') // Nombre de la tabla en la base de datos
 export class Servicio {
@@ -40,7 +41,10 @@ export class Servicio {
   @Column({ type: 'int', nullable: false })
   id_tipo_servicio!: number; // Clave foránea al TipoServicio al que pertenece
 
-  @Column({ type: 'int', nullable: false, default: 0 }) //
+  @Column({ type: 'int', nullable: false })
+  duracion_minutos!: number;
+
+  @Column({ type: 'int', nullable: false, default: 60 }) //
   porcentaje_comision_colaborador!: number;
 
     // Campo para control de eliminación lógica: 0 = activo (por defecto), 1 = inactivo
@@ -61,4 +65,7 @@ export class Servicio {
   
   @OneToMany(() => DetalleVenta, (detalleVenta) => detalleVenta.producto)
   detallesVenta!: DetalleVenta[];
+
+  @OneToMany(() => Reserva, (reserva) => reserva.servicio)
+  reservas!: Reserva[];
 }

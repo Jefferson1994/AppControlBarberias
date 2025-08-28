@@ -22,6 +22,8 @@ import { DetalleVenta} from '../entities/DetalleVenta';
 import { Venta} from '../entities/Venta';
 import {ParametroSistema } from '../entities/ParametrosSistema'
 import {ComprobanteCounter } from '../entities/ComprobanteCounter'
+import {Reserva } from '../entities/Reserva'
+import {EstadoReserva } from '../entities/EstadoReserva'
 
 //cadeana local
 /*export const AppDataSource = new DataSource({
@@ -36,7 +38,7 @@ import {ComprobanteCounter } from '../entities/ComprobanteCounter'
   entities: [Usuario, Caja, Cliente, DetalleFactura,Colaborador,Factura,
     MetodoPago,MovimientoCaja,Negocio,Producto,Servicio,Rol,Otp,TipoOtp,
     TipoEmpresa,DatosContactoEmpresa,TipoProducto,TipoServicio,TipoMovimientoCaja,
-    Venta,DetalleVenta,ParametroSistema,ComprobanteCounter
+    Venta,DetalleVenta,ParametroSistema,ComprobanteCounter,Reserva,EstadoReserva
   ],
   options: {
     encrypt: false,
@@ -66,7 +68,7 @@ export const AppDataSource = new DataSource({
     TipoProducto,TipoServicio,
     TipoMovimientoCaja,Venta,
     DetalleVenta,ParametroSistema,
-    ComprobanteCounter
+    ComprobanteCounter,Reserva,EstadoReserva
   ],
   options: {
     encrypt: true, // Activar encriptación para conexiones a SQL Azure, o si tu servidor lo requiere
