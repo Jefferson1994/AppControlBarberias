@@ -8,6 +8,7 @@ import { TipoOtp } from "../entities/TipoOtp"; // Importar la entidad TipoOtp
 import * as dotenv from 'dotenv'; 
 import * as jwt from 'jsonwebtoken'; // Importar jsonwebtoken
 import { sendEmail, generateOtp,prepareOtpVerificationEmail } from './EmailService'; // Importar el EmailService
+import { Cliente } from "../entities/Cliente";
 
 const usuarioRepository = AppDataSource.getRepository(Usuario);
 const JWT_SECRET = process.env.NODE_ENV === 'development'
@@ -19,6 +20,7 @@ if (!JWT_SECRET) {
   process.exit(1);
 }
 dotenv.config(); 
+
 
 export const obtenerUsuarios = async () => {
   return await usuarioRepository.find();
@@ -40,6 +42,12 @@ export const crearUsuario = async (datos: Partial<Usuario>): Promise<Usuario> =>
       const nuevoUsuario = transactionalEntityManager.create(Usuario, datos);
     
       const usuarioGuardado = await transactionalEntityManager.save(Usuario, nuevoUsuario);
+
+      const nuevoCliente = transactionalEntityManager.create(Cliente, {
+                direccion: "direccion de prueba",
+                id_usuario: usuarioGuardado.id, // Se vincula el ID del nuevo usuario
+      });
+      await transactionalEntityManager.save(Cliente, nuevoCliente);
 
       const otpRepository = transactionalEntityManager.getRepository(Otp);
       const tipoOtpRepository = transactionalEntityManager.getRepository(TipoOtp);
@@ -105,7 +113,7 @@ export const obtenerLoginPorMail = async (correo: string, contrasena: string): P
   try {
     const usuario = await usuarioRepository.findOne({
       where: { correo: correo },
-      relations: ['negociosAdministrados', 'rol'], // Asegúrate de cargar el rol para el payload
+      relations: ['negociosAdministrados', 'empleados', 'rol'], // Asegúrate de cargar el rol para el payload
     });
 
     console.log("Usuario encontrado en DB:", usuario ? usuario.correo : "Ninguno");

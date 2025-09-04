@@ -1,5 +1,5 @@
 // Importaciones necesarias de TypeORM
-import {
+/*import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
@@ -33,4 +33,47 @@ export class Cliente {
 
   @OneToMany(() => Reserva, (reserva) => reserva.cliente)
   reservas!: Reserva[];
+}*/
+
+// src/entities/Cliente.ts
+
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  ManyToOne,
+  JoinColumn,
+  CreateDateColumn,
+  OneToOne // Importamos OneToOne
+} from 'typeorm';
+
+import { Usuario } from './Usuario'; // Importamos la entidad Usuario
+import { Factura } from './Facturas';
+import { Reserva } from './Reserva';
+
+@Entity('clientes')
+export class Cliente {
+ @PrimaryGeneratedColumn()
+ id!: number;
+
+ // Quitamos 'nombre', 'correo' e 'identificacion' porque ya están en Usuario
+ // Puedes dejar los campos que son específicos del cliente, como 'direccion'.
+ @Column({ type: 'text', nullable: true })
+ direccion!: string;
+
+ // --- Relación con Usuario (Nueva) ---
+ @OneToOne(() => Usuario, (usuario) => usuario.cliente)
+ @JoinColumn({ name: 'id_usuario' }) // La columna 'id_usuario' será la FK
+ usuario!: Usuario;
+
+ @Column({ type: 'int', unique: true, nullable: false })
+ id_usuario!: number;
+
+ // --- Relaciones existentes ---
+ @OneToMany(() => Factura, (factura) => factura.cliente)
+ facturas!: Factura[];
+
+ @OneToMany(() => Reserva, (reserva) => reserva.cliente)
+ reservas!: Reserva[];
 }
