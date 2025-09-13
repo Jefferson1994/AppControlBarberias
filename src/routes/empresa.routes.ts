@@ -11,5 +11,6 @@ router.delete('/:id', authenticateJWT, NegocioController.eliminar);
 //Colaborador Empresa
 router.post('/agregarColaborador', authenticateJWT, NegocioController.agregarColaborador);
 router.post('/desvincularColaborador', authenticateJWT, NegocioController.desvincularColaborador);
+router.post('/todasEmpresasXAdmin', authenticateJWT, NegocioController.obtenerEmpresasPorAdmin);
 
 export default router;

@@ -76,7 +76,10 @@ export class UserController {
 
       if (usuario) {
         // Controller processes the result from the service and sends an HTTP response
-        res.status(200).json({ message: 'Inicio de sesión exitoso', user: usuario });
+        res.status(200).json({ message: 'Inicio de sesión exitoso', 
+          user: usuario.user, // <--- Accede al objeto de usuario
+          token: usuario.token 
+      });
       } else {
         res.status(401).json({ message: 'Credenciales inválidas' });
       }

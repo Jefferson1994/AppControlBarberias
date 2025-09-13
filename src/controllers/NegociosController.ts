@@ -209,6 +209,36 @@ export class NegocioController {
     }
   }
 
+  static async obtenerEmpresasPorAdmin(req: CustomRequest, res: Response) {
+        console.log("--- Inicio de NegocioController.obtenerEmpresasPorAdmin ---");
+        try {
+
+            if (!req.user) {
+                return res.status(401).json({ mensaje: "Usuario no autenticado." });
+            }
+
+            console.log(`Usuario autenticado: ${req.user.correo}, Rol: ${req.user.rolNombre}`);
+
+            const idAdminSolicitante = req.user.id; 
+
+            if (req.user.rolNombre !== 'Administrador') {
+                return res.status(403).json({ mensaje: "Acceso denegado. Solo los administradores pueden ver sus empresas asociadas." });
+            }
+
+            const empresas = await  NegocioService.obtenerEmpresasPorAdmin(idAdminSolicitante);
+
+            res.status(200).json({
+                mensaje: "Empresas obtenidas exitosamente.",
+                empresas: empresas,
+            });
+
+        } catch (error: unknown) {
+            console.error("Error en NegocioController.obtenerEmpresasPorAdmin:", error);
+            // 4. Manejar y enviar respuesta de error
+            res.status(400).json({ mensaje: (error as Error).message || "Error interno del servidor al obtener las empresas." });
+        }
+    }
+
  
 
 }

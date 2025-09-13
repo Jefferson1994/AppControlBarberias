@@ -113,7 +113,7 @@ export const obtenerLoginPorMail = async (correo: string, contrasena: string): P
   try {
     const usuario = await usuarioRepository.findOne({
       where: { correo: correo },
-      relations: ['negociosAdministrados', 'empleados', 'rol'], // Asegúrate de cargar el rol para el payload
+      relations: ['negociosAdministrados', 'rol'], // Asegúrate de cargar el rol para el payload
     });
 
     console.log("Usuario encontrado en DB:", usuario ? usuario.correo : "Ninguno");

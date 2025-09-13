@@ -273,3 +273,53 @@ export const obtenerProductoPorId = async (id: number, idNegocio: number): Promi
     throw new Error("No se pudo obtener el producto para el negocio especificado. Por favor, inténtalo de nuevo más tarde.");
   }
 };
+
+
+export const obtenerEmpresasPorAdmin = async (idAdmin: number): Promise<Negocio[]> => {
+    // 1. Validar la entrada. El ID del administrador debe ser un número válido.
+    if (!idAdmin || typeof idAdmin !== 'number' || idAdmin <= 0) {
+        throw new Error("ID de administrador no válido. Por favor, proporcione un número positivo.");
+    }
+
+
+    return await AppDataSource.manager.transaction(async (transactionalEntityManager) => {
+        try {
+            const administradorExistente = await transactionalEntityManager.findOne(Usuario, {
+                where: { id: idAdmin },
+            });
+            if (!administradorExistente) {
+                throw new Error("El administrador especificado no existe.");
+            }
+
+            // 4. Construir y ejecutar la consulta.
+            const empresas = await transactionalEntityManager.find(Negocio, {
+                where: {
+                    id_administrador: idAdmin,
+                    activo: 1, 
+                },
+                relations: [
+                    'datosContactoEmpresa', 
+                    'tipoEmpresa'
+                ],
+            });
+
+            // 5. Verificar si se encontraron empresas.
+            if (empresas.length === 0) {
+                // En lugar de un error, es mejor devolver un array vacío o un mensaje descriptivo
+                // si no se encuentran empresas. Un error se usa para fallos inesperados.
+                console.log(`No se encontraron empresas activas para el administrador con ID ${idAdmin}.`);
+                return [];
+            }
+
+            return empresas;
+        } catch (error) {
+            console.error("Error detallado en obtenerEmpresasPorAdmin (Servicio):", error);
+            
+            // 7. Lanzar un error más amigable para el cliente.
+            if (error instanceof QueryFailedError) {
+                throw new Error("No se pudieron obtener las empresas. Error en la consulta a la base de datos.");
+            }
+            throw new Error((error as Error).message || "No se pudo obtener la lista de empresas. Por favor, inténtalo de nuevo más tarde.");
+        }
+    });
+};
