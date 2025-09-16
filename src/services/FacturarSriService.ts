@@ -130,7 +130,7 @@ export const generarComprobanteSimple = async (
           .font('Helvetica-Bold')
           .text('CLIENTE:', { continued: true })
           .font('Helvetica')
-          .text(` ${cliente.nombre} `) // Usar nombre y apellido del Cliente
+          .text(` ${cliente.direccion} `) // Usar nombre y apellido del Cliente
           .moveDown(0.5);
       } else if (venta.id_cliente) {
         // Si id_cliente existe pero el cliente no se encontró o hubo un error al buscarlo
