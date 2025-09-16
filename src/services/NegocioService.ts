@@ -323,3 +323,53 @@ export const obtenerEmpresasPorAdmin = async (idAdmin: number): Promise<Negocio[
         }
     });
 };
+
+export const obtenerEmpresaPorId = async (idAdmin: number, idEmpresa: number): Promise<Negocio> => {
+    // 1. Validar las entradas. Ambos IDs deben ser números válidos.
+    if (!idAdmin || typeof idAdmin !== 'number' || idAdmin <= 0) {
+        throw new Error("ID de administrador no válido. Por favor, proporcione un número positivo.");
+    }
+    if (!idEmpresa || typeof idEmpresa !== 'number' || idEmpresa <= 0) {
+        throw new Error("ID de empresa no válido. Por favor, proporcione un número positivo.");
+    }
+
+    return await AppDataSource.manager.transaction(async (transactionalEntityManager) => {
+        try {
+            const administradorExistente = await transactionalEntityManager.findOne(Usuario, {
+                where: { id: idAdmin },
+            });
+            if (!administradorExistente) {
+                throw new Error("El administrador especificado no existe.");
+            }
+
+            const empresa = await transactionalEntityManager.findOne(Negocio, {
+                where: {
+                    id: idEmpresa, 
+                    id_administrador: idAdmin, 
+                    activo: 1,
+                },
+                relations: [
+                    'datosContactoEmpresa',
+                    'tipoEmpresa'
+                ],
+            });
+
+            if (!empresa) {
+                throw new Error(`No se encontró la empresa con ID ${idEmpresa}, no está activa, o no pertenece al administrador especificado.`);
+            }
+
+            return empresa;
+
+        } catch (error) {
+            // 6. Manejo de errores.
+            console.error(`Error detallado en obtenerEmpresaPorId (Servicio) para idEmpresa ${idEmpresa}:`, error);
+
+            if (error instanceof QueryFailedError) {
+                throw new Error("No se pudo obtener la empresa. Error en la consulta a la base de datos.");
+            }
+            // Re-lanzar el error para que sea manejado por el controlador.
+            // Si el error ya es una instancia de Error, usamos su mensaje.
+            throw new Error((error instanceof Error) ? error.message : "No se pudo obtener la empresa. Por favor, inténtalo de nuevo más tarde.");
+        }
+    });
+};

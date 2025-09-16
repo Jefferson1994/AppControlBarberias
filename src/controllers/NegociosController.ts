@@ -237,8 +237,55 @@ export class NegocioController {
             // 4. Manejar y enviar respuesta de error
             res.status(400).json({ mensaje: (error as Error).message || "Error interno del servidor al obtener las empresas." });
         }
-    }
+  }
 
- 
+  static async obtenerEmpresaPorId(req: CustomRequest, res: Response) {
+        console.log("--- Inicio de NegocioController.obtenerEmpresaPorId ---");
+        try {
+            if (!req.user) {
+                return res.status(401).json({ mensaje: "Usuario no autenticado." });
+            }
+
+            console.log(`Usuario autenticado: ${req.user.correo}, Rol: ${req.user.rolNombre}`);
+
+            if (req.user.rolNombre !== 'Administrador') {
+                return res.status(403).json({ mensaje: "Acceso denegado. Función solo para administradores." });
+            }
+
+            const idAdminSolicitante = req.user.id;
+            const { idEmpresa } = req.body;
+  
+            const idEmpresa2 = parseInt(idEmpresa, 10);
+
+            console.log(`el ide de la empresa`,idEmpresa);
+            console.log(`el ide de la empresa`,idAdminSolicitante);
+
+            if (isNaN(idEmpresa) || idEmpresa <= 0) {
+                return res.status(400).json({ mensaje: "El ID de la empresa proporcionado en la URL no es válido." });
+            }
+
+            console.log(`Solicitando empresa con ID: ${idEmpresa} para el admin con ID: ${idAdminSolicitante}`);
+
+            // 5. Llamar al servicio con ambos IDs
+            const empresa = await NegocioService.obtenerEmpresaPorId(idAdminSolicitante, idEmpresa2);
+
+            // 6. Enviar respuesta exitosa
+            res.status(200).json({
+                mensaje: "Empresa obtenida exitosamente.",
+                empresa: empresa, // Se devuelve el objeto único
+            });
+
+        } catch (error: unknown) {
+            console.error("Error en NegocioController.obtenerEmpresaPorId:", error);
+            
+            const errorMessage = (error as Error).message;
+
+            if (errorMessage.includes("No se encontró la empresa")) {
+                return res.status(404).json({ mensaje: errorMessage });
+            }
+            
+            res.status(400).json({ mensaje: errorMessage || "Error interno del servidor al obtener la empresa." });
+        }
+  }
 
 }
