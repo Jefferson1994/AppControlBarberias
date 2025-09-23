@@ -78,10 +78,15 @@ export class Negocio {
   @Column({ type: 'int', nullable: false })
   id_administrador!: number;
 
+  @Column({ type: 'text', nullable: true, default:'' })
+  urlImagen!: string | null;
+
   // Fecha y hora en que se creó el registro del negocio.
   // Se autogenera con la fecha y hora actual al insertar.
   @CreateDateColumn({ type: 'datetime2', default: () => 'GETDATE()' })
   creado_en!: Date;
+
+  
 
   // --- Definición de Relaciones entre Entidades ---
 

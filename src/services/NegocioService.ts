@@ -2,10 +2,11 @@ import { AppDataSource } from "../config/data-source";
 import { Negocio } from "../entities/Negocio";
 import { Usuario } from "../entities/Usuario"; // Necesario para buscar el administrador si es requerido
 import { QueryFailedError } from "typeorm";
-import { CrearEmpresaDatos } from "../interfaces/crearEmpresaDatos";
+import { CrearEmpresaDatos, EstadisticasInventario } from "../interfaces/crearEmpresaDatos";
 import { TipoEmpresa } from "../entities/TipoEmpresa"; 
 import { DatosContactoEmpresa } from "../entities/DatosContactoEmpresa";
 import { Producto } from "../entities/Producto";
+import cloudinary from '../config/cloudinary';
 
 /**
  * Crea un nuevo negocio en la base de datos.
@@ -18,6 +19,7 @@ export const crearNegocio = async (datos: CrearEmpresaDatos): Promise<Negocio> =
   return await AppDataSource.manager.transaction(async (transactionalEntityManager) => {
     try {
       // 1. Validaciones de campos obligatorios para Negocio
+      
       if (!datos.nombre) {
         throw new Error("El nombre de la empresa es obligatorio.");
       }
@@ -61,6 +63,19 @@ export const crearNegocio = async (datos: CrearEmpresaDatos): Promise<Negocio> =
         throw new Error("Ya existe una empresa con este RUC.");
       }
 
+      // 2. ========= LÓGICA DE SUBIDA DE IMAGEN (OPCIONAL) =========
+      let imagenUrl: string | null = null;
+      if (datos.imagen) {
+        // Convierte el buffer del archivo a un formato que Cloudinary pueda procesar
+        const base64String = datos.imagen.buffer.toString('base64');
+        const dataUri = `data:${datos.imagen.mimetype};base64,${base64String}`;
+
+        const resultadoCloudinary = await cloudinary.uploader.upload(dataUri, {
+          folder: 'negocios', // Organiza las imágenes en una carpeta "negocios" en Cloudinary
+        });
+        imagenUrl = resultadoCloudinary.secure_url;
+      }
+
       let datosContactoEmpresaGuardados: DatosContactoEmpresa | null = null;
 
       // 5. Crear y guardar DatosContactoEmpresa si los datos son proporcionados
@@ -87,6 +102,10 @@ export const crearNegocio = async (datos: CrearEmpresaDatos): Promise<Negocio> =
       }
 
       // 8. Guarda la nueva empresa en la base de datos
+      if (imagenUrl) {
+        nuevoNegocio.urlImagen = imagenUrl;
+      }
+
       const negocioGuardado = await transactionalEntityManager.save(Negocio, nuevoNegocio);
 
       return negocioGuardado;
@@ -372,4 +391,36 @@ export const obtenerEmpresaPorId = async (idAdmin: number, idEmpresa: number): P
             throw new Error((error instanceof Error) ? error.message : "No se pudo obtener la empresa. Por favor, inténtalo de nuevo más tarde.");
         }
     });
+};
+
+
+export const obtenerEstadisticasInventario = async (idEmpresa: number): Promise<EstadisticasInventario> => {
+  // 1. Validar la entrada
+  if (!idEmpresa || typeof idEmpresa !== 'number' || idEmpresa <= 0) {
+    throw new Error("ID de empresa no válido. Por favor, proporcione un número positivo.");
+  }
+
+  try {
+    // 2. Ejecutar el Stored Procedure unificado
+    const resultadoSP = await AppDataSource.manager.query(
+      'EXEC sp_ObtenerEstadisticasInventario @id_empresa = @0',
+      [idEmpresa]
+    );
+
+    // 3. Devolver el resultado o un objeto con ceros si no hay datos
+    if (resultadoSP && resultadoSP.length > 0) {
+      return resultadoSP[0];
+    } else {
+      // Esto maneja el caso de un negocio sin productos
+      return {
+        valorTotalInventario: 0,
+        totalProductos: 0,
+        productosConPocoStock: 0,
+        gananciaPotencial: 0,
+      };
+    }
+  } catch (error) {
+    console.error(`Error en obtenerEstadisticasInventario para idEmpresa ${idEmpresa}:`, error);
+    throw new Error("No se pudieron obtener las estadísticas del inventario.");
+  }
 };

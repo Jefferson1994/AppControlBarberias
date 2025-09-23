@@ -31,4 +31,13 @@ export interface CrearEmpresaDatos {
 
   // Campo anidado para datos de contacto y ubicación
   datos_contacto?: ContactoUbicacionDatos;
+  imagen?: Express.Multer.File;
+}
+
+
+export interface EstadisticasInventario {
+  valorTotalInventario: number;
+  totalProductos: number;
+  productosConPocoStock: number;
+  gananciaPotencial: number;
 }

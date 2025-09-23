@@ -26,7 +26,7 @@ import {Reserva } from '../entities/Reserva'
 import {EstadoReserva } from '../entities/EstadoReserva'
 
 //cadeana local
-/*export const AppDataSource = new DataSource({
+export const AppDataSource = new DataSource({
   type: 'mssql',
   host: 'localhost', // o LAPTOP-UA0JFMK2
   port: 1433,
@@ -44,17 +44,17 @@ import {EstadoReserva } from '../entities/EstadoReserva'
     encrypt: false,
     enableArithAbort: true,
   },
-});*/
+});
 
 
-export const AppDataSource = new DataSource({
+/*export const AppDataSource = new DataSource({
   type: 'mssql',
   host: 'SQL1004.site4now.net', // Actualizado según "Data Source"
   port: 1433, // Puerto predeterminado para SQL Server, generalmente 1433
   username: 'db_abced7_jeff1994jsv_admin', // Actualizado según "User Id"
   password: 'J3FF1994jsv123', // Contraseña confirmada
   database: 'db_abced7_jeff1994jsv', // Actualizado según "Initial Catalog"
-  synchronize: true, // Sincroniza las entidades con la base de datos (usar con precaución en producción)
+  synchronize: false, // Sincroniza las entidades con la base de datos (usar con precaución en producción)
   logging: false, // Desactiva el log de consultas SQL en la consola
   entities: [
     Usuario,Caja,
@@ -75,4 +75,4 @@ export const AppDataSource = new DataSource({
     trustServerCertificate: true, // Cambiar a false en producción y proporcionar certificados CA válidos
     enableArithAbort: true, // Habilita la validación de errores aritméticos
   },
-});
+});*/

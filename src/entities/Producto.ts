@@ -25,6 +25,9 @@ export class Producto {
   descripcion!: string | null;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: false })
+  precio_compra!: number;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: false })
   precio_venta!: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })

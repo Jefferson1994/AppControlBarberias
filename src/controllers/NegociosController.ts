@@ -30,12 +30,45 @@ export class NegocioController {
       }
 
       // 3. Tipar el cuerpo de la solicitud directamente con la interfaz
-      const datosEmpresa: CrearEmpresaDatos = req.body; 
+      //const datosEmpresa: CrearEmpresaDatos = req.body; 
 
       // Asignar el id_administrador del usuario autenticado
-      datosEmpresa.id_administrador = req.user.id; 
+      const datosDelBody = req.body;
+      const archivoImagen = req.file;
 
-      const nuevaEmpresa = await NegocioService.crearNegocio(datosEmpresa);
+      // Prepara un objeto de datos limpios para el servicio, convirtiendo tipos
+      const datosParaServicio: CrearEmpresaDatos = {
+        // Campos de texto que no necesitan conversión
+        nombre: datosDelBody.nombre,
+        ruc: datosDelBody.ruc,
+        descripcion: datosDelBody.descripcion,
+        direccion: datosDelBody.direccion,
+        horario_apertura: datosDelBody.horario_apertura,
+        horario_cierre: datosDelBody.horario_cierre,
+
+        // Conversión de strings a números enteros (Integer)
+        id_administrador: req.user.id, // Se toma del token, ya es un número
+        id_tipo_empresa: parseInt(datosDelBody.id_tipo_empresa, 10),
+        
+        // Objeto anidado de contacto
+        datos_contacto: {
+          telefono_contacto: datosDelBody['datos_contacto[telefono_contacto]'],
+          email_contacto: datosDelBody['datos_contacto[email_contacto]'],
+          ciudad: datosDelBody['datos_contacto[ciudad]'],
+          provincia: datosDelBody['datos_contacto[provincia]'],
+          pais: datosDelBody['datos_contacto[pais]'],
+          // Conversión de strings a números con decimales (Float)
+          latitud: parseFloat(datosDelBody['datos_contacto[latitud]']),
+          longitud: parseFloat(datosDelBody['datos_contacto[longitud]']),
+        },
+
+        // Asignación del archivo de imagen (si existe)
+        imagen: archivoImagen,
+      };
+      //console.log('el nuevo objeto con imagen para gurdar', JSON.stringify(datosParaServicio))
+      //datosEmpresa.id_administrador = req.user.id; 
+
+      const nuevaEmpresa = await NegocioService.crearNegocio(datosParaServicio);
 
       // 4. Envía la respuesta de éxito
       res.status(201).json({
@@ -287,5 +320,36 @@ export class NegocioController {
             res.status(400).json({ mensaje: errorMessage || "Error interno del servidor al obtener la empresa." });
         }
   }
+
+  static async obtenerEstadisticas(req: CustomRequest, res: Response) {
+  try {
+    // La autenticación
+    if (!req.user) {
+      return res.status(401).json({ mensaje: "Usuario no autenticado." });
+    }
+    if (req.user.rolNombre !== 'Administrador') {
+      return res.status(403).json({ mensaje: "Acceso denegado." });
+    }
+
+ 
+    const { idEmpresa } = req.body;
+
+    
+    const idEmpresaNumerico = parseInt(idEmpresa, 10);
+    if (isNaN(idEmpresaNumerico) || idEmpresaNumerico <= 0) {
+      return res.status(400).json({ mensaje: "El idEmpresa proporcionado en el body no es válido." });
+    }
+
+    const estadisticas = await NegocioService.obtenerEstadisticasInventario(idEmpresaNumerico);
+
+    res.status(200).json(estadisticas);
+
+  } catch (error: unknown) {
+    console.error("Error en NegocioController.obtenerEstadisticas:", error);
+    res.status(400).json({ mensaje: (error as Error).message || "Error interno del servidor." });
+  }
+}
+
+
 
 }
