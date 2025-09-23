@@ -54,7 +54,7 @@ export const AppDataSource = new DataSource({
   username: 'db_abced7_jeff1994jsv_admin', // Actualizado según "User Id"
   password: 'J3FF1994jsv123', // Contraseña confirmada
   database: 'db_abced7_jeff1994jsv', // Actualizado según "Initial Catalog"
-  synchronize: false, // Sincroniza las entidades con la base de datos (usar con precaución en producción)
+  synchronize: true, // Sincroniza las entidades con la base de datos (usar con precaución en producción)
   logging: false, // Desactiva el log de consultas SQL en la consola
   entities: [
     Usuario,Caja,
