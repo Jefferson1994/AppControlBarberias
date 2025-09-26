@@ -54,55 +54,50 @@ async function getTokenCiudadano(): Promise<string> {
 // Función principal, ahora con un tipo de retorno explícito y mejor manejo de errores
 export async function getDatosCiudadano(tipo: string, identificacion: string): Promise<object> {
     const cacheKey = `${tipo}-${identificacion}`;
-    if (cedulaCache.has(cacheKey)) {
+    const cachedData = cedulaCache.get(cacheKey);
+    if (cachedData) {
         console.log(`Resultado para ${cacheKey} obtenido desde caché.`);
-        return cedulaCache.get(cacheKey) as object;
+        return cachedData as object;
     }
 
     try {
         const token = await getTokenCiudadano();
         if (!token) throw new Error('Token inválido o nulo.');
 
-        let apiResponse: any;
+        const url = `${process.env.CEDULA_API_URL}/Consultar`;
+        const response = await axios.get(url, {
+            params: { tipoidentificacion: tipo, identificacion },
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Ocp-Apim-Subscription-Key': process.env.CEDULA_API_KEY!,
+            },
+        });
 
-        // --- LÓGICA PARA CAMBIAR DE PROVEEDOR ---
-        if (process.env.CEDULA_PROVIDER === 'nuevo') {
-            console.log('Usando el NUEVO proveedor de servicios...');
-            // Aquí iría la lógica de llamada al nuevo API
-            // Por ahora, simulamos la respuesta que nos diste:
-            apiResponse = { data: { response: { identificacion, nombreCompleto: "NOMBRE DESDE NUEVO API", nombres: "NOMBRE", apellidos: "APELLIDO", fechaDefuncion: null } } };
+        const resultado = response.data?.DataResult 
+            ? { ok: true, datos: response.data.DataResult }
+            : { ok: false, mensaje: 'No se encontraron datos.' };
             
-            const resultadoEstandar = mapperServicioNuevo(apiResponse);
-            const resultadoFinal = { ok: true, datos: resultadoEstandar };
-            cedulaCache.set(cacheKey, resultadoFinal);
-            return resultadoFinal;
+        cedulaCache.set(cacheKey, resultado);
+        return resultado;
 
-        } else {
-            // Lógica para el servicio ACTUAL (el de tu trabajo)
-            console.log('Usando el proveedor de servicios ACTUAL...');
-            const url = `${process.env.CEDULA_API_URL}/Consultar`;
-            const response = await axios.get(url, {
-                params: { tipoidentificacion: tipo, identificacion },
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Ocp-Apim-Subscription-Key': process.env.CEDULA_API_KEY!,
-                },
-            });
-
-            apiResponse = response.data?.DataResult;
-
-            if (apiResponse) {
-                const resultadoEstandar = mapperServicioActual(apiResponse,identificacion);
-                const resultadoFinal = { ok: true, datos: resultadoEstandar };
-                cedulaCache.set(cacheKey, resultadoFinal);
-                return resultadoFinal;
-            } else {
-                return { ok: false, mensaje: 'No se encontraron datos.' };
-            }
-        }
     } catch (error) {
-        // ... (tu manejo de errores se queda igual)
-        // ...
+        // --- BLOQUE CORREGIDO ---
+        let errorMessage = 'Error al consultar el servicio de ciudadanos.';
+
+        if (axios.isAxiosError(error)) {
+            console.error('Error de Axios al consultar datos del ciudadano:', error.response?.data);
+            if (error.response?.status === 404) {
+                errorMessage = 'Identificación inválida o no encontrada.';
+            } else if (error.response?.data?.mensaje) {
+                // Si el API de error tiene un mensaje, úsalo
+                errorMessage = error.response.data.mensaje;
+            }
+        } else {
+            console.error('Error inesperado al consultar datos del ciudadano:', error);
+        }
+
+        // ✅ La corrección clave: Siempre retornamos un objeto con la estructura esperada
+        return { ok: false, mensaje: errorMessage };
     }
 }
 
