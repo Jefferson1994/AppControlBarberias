@@ -48,7 +48,7 @@ export class Servicio {
   porcentaje_comision_colaborador!: number;
 
     // Campo para control de eliminación lógica: 0 = activo (por defecto), 1 = inactivo
-  @Column({ type: 'tinyint', default: 0, nullable: false }) // Cambiado a 0 para activo como default
+  @Column({ type: 'tinyint', default: 1, nullable: false }) // Cambiado a 0 para activo como default
   activo!: number;
 
   // Relaciones

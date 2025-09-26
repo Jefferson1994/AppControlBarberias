@@ -1,7 +1,4 @@
-/**
- * Interfaz para los datos de contacto y ubicación de una empresa.
- * Se usará anidada dentro de CrearEmpresaDatos.
- */
+
 export interface ContactoUbicacionDatos {
   telefono_contacto?: string | null;
   email_contacto?: string | null;
@@ -12,11 +9,7 @@ export interface ContactoUbicacionDatos {
   longitud?: number | null;
 }
 
-/**
- * Interfaz que define la estructura de los datos necesarios
- * para crear una nueva empresa (negocio), con los datos de contacto/ubicación
- * en un objeto anidado 'datos_contacto'.
- */
+
 export interface CrearEmpresaDatos {
   nombre: string;
   ruc: string; // Obligatorio
@@ -28,10 +21,8 @@ export interface CrearEmpresaDatos {
   horario_apertura: string; // Obligatorio
   horario_cierre: string; // Obligatorio
   id_administrador: number; // Se asigna desde el token
-
-  // Campo anidado para datos de contacto y ubicación
   datos_contacto?: ContactoUbicacionDatos;
-  imagen?: Express.Multer.File;
+  imagenes?: Express.Multer.File[];
 }
 
 
@@ -40,4 +31,15 @@ export interface EstadisticasInventario {
   totalProductos: number;
   productosConPocoStock: number;
   gananciaPotencial: number;
+}
+export interface NegocioData {
+  nombre: string;
+  ruc: string;
+  descripcion?: string | null;
+  activo?: number;
+  id_tipo_empresa: number;
+  direccion?: string | null;
+  horario_apertura: string;
+  horario_cierre: string;
+  id_administrador: number;
 }

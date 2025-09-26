@@ -8,7 +8,7 @@ const upload = multer({ storage: storage });
 const router = Router();
 
 
-router.post('/crearEmpresa', authenticateJWT,upload.single('imagen'), NegocioController.crear);
+router.post('/crearEmpresa', authenticateJWT, upload.array('imagenes', 3), NegocioController.crear);
 router.put('/:id', authenticateJWT, NegocioController.actualizar);
 router.delete('/:id', authenticateJWT, NegocioController.eliminar);
 //Colaborador Empresa

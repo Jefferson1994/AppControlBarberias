@@ -2,122 +2,106 @@ import { AppDataSource } from "../config/data-source";
 import { Negocio } from "../entities/Negocio";
 import { Usuario } from "../entities/Usuario"; // Necesario para buscar el administrador si es requerido
 import { QueryFailedError } from "typeorm";
-import { CrearEmpresaDatos, EstadisticasInventario } from "../interfaces/crearEmpresaDatos";
+import { CrearEmpresaDatos, EstadisticasInventario, NegocioData } from "../interfaces/crearEmpresaDatos";
 import { TipoEmpresa } from "../entities/TipoEmpresa"; 
 import { DatosContactoEmpresa } from "../entities/DatosContactoEmpresa";
 import { Producto } from "../entities/Producto";
 import cloudinary from '../config/cloudinary';
+import { ImagenEmpresa } from "../entities/ImagenEmpresa";
 
 /**
  * Crea un nuevo negocio en la base de datos.
- *
- * @param datos Objeto con las propiedades del nuevo negocio (nombre, direccion, id_administrador).
- * @returns Una promesa que resuelve al objeto Negocio creado.
- * @throws {Error} Si faltan datos obligatorios, el negocio ya existe, o falla la creación.
  */
 export const crearNegocio = async (datos: CrearEmpresaDatos): Promise<Negocio> => {
+  // Inicia la transacción para asegurar que todas las operaciones se completen o ninguna lo haga.
   return await AppDataSource.manager.transaction(async (transactionalEntityManager) => {
     try {
-      // 1. Validaciones de campos obligatorios para Negocio
+      // --- 1. VALIDACIONES DE DATOS ---
+      if (!datos.nombre) throw new Error("El nombre de la empresa es obligatorio.");
+      if (!datos.ruc) throw new Error("El RUC de la empresa es obligatorio.");
+      if (!datos.id_administrador) throw new Error("El ID del administrador es obligatorio.");
+      if (!datos.id_tipo_empresa) throw new Error("El ID del tipo de empresa es obligatorio.");
+      if (!datos.horario_apertura) throw new Error("El horario de apertura es obligatorio.");
+      if (!datos.horario_cierre) throw new Error("El horario de cierre es obligatorio.");
+
+      // Verificar existencia de entidades relacionadas
+      const administradorExistente = await transactionalEntityManager.findOne(Usuario, { where: { id: datos.id_administrador } });
+      if (!administradorExistente) throw new Error("El administrador especificado no existe.");
       
-      if (!datos.nombre) {
-        throw new Error("El nombre de la empresa es obligatorio.");
-      }
-      if (!datos.ruc) {
-        throw new Error("El RUC de la empresa es obligatorio.");
-      }
-      if (!datos.id_administrador) {
-        throw new Error("El ID del administrador es obligatorio.");
-      }
-      if (!datos.id_tipo_empresa) {
-        throw new Error("El ID del tipo de empresa es obligatorio.");
-      }
-      if (!datos.horario_apertura) {
-        throw new Error("El horario de apertura es obligatorio.");
-      }
-      if (!datos.horario_cierre) {
-        throw new Error("El horario de cierre es obligatorio.");
-      }
+      const tipoEmpresaExistente = await transactionalEntityManager.findOne(TipoEmpresa, { where: { id: datos.id_tipo_empresa } });
+      if (!tipoEmpresaExistente) throw new Error("El tipo de empresa especificado no existe.");
 
-      // 2. Verificar existencia del administrador
-      const administradorExistente = await transactionalEntityManager.findOne(Usuario, {
-        where: { id: datos.id_administrador },
-      });
-      if (!administradorExistente) {
-        throw new Error("El administrador especificado no existe.");
-      }
+      const negocioConMismoRuc = await transactionalEntityManager.findOne(Negocio, { where: { ruc: datos.ruc } });
+      if (negocioConMismoRuc) throw new Error("Ya existe una empresa con este RUC.");
 
-      // 3. Verificar existencia del TipoEmpresa
-      const tipoEmpresaExistente = await transactionalEntityManager.findOne(TipoEmpresa, {
-        where: { id: datos.id_tipo_empresa },
-      });
-      if (!tipoEmpresaExistente) {
-        throw new Error("El tipo de empresa especificado no existe.");
-      }
-
-      // 4. Verificar unicidad de RUC antes de la creación
-      const negocioConMismoRuc = await transactionalEntityManager.findOne(Negocio, {
-        where: { ruc: datos.ruc },
-      });
-      if (negocioConMismoRuc) {
-        throw new Error("Ya existe una empresa con este RUC.");
-      }
-
-      // 2. ========= LÓGICA DE SUBIDA DE IMAGEN (OPCIONAL) =========
-      let imagenUrl: string | null = null;
-      if (datos.imagen) {
-        // Convierte el buffer del archivo a un formato que Cloudinary pueda procesar
-        const base64String = datos.imagen.buffer.toString('base64');
-        const dataUri = `data:${datos.imagen.mimetype};base64,${base64String}`;
-
-        const resultadoCloudinary = await cloudinary.uploader.upload(dataUri, {
-          folder: 'negocios', // Organiza las imágenes en una carpeta "negocios" en Cloudinary
-        });
-        imagenUrl = resultadoCloudinary.secure_url;
-      }
-
+      
+      // --- 2. CREAR Y GUARDAR DATOS DE CONTACTO (Si existen) ---
       let datosContactoEmpresaGuardados: DatosContactoEmpresa | null = null;
-
-      // 5. Crear y guardar DatosContactoEmpresa si los datos son proporcionados
-      if (datos.datos_contacto && Object.keys(datos.datos_contacto).length > 0) {
+      if (datos.datos_contacto) {
         const nuevoDatosContacto = transactionalEntityManager.create(DatosContactoEmpresa, datos.datos_contacto);
         datosContactoEmpresaGuardados = await transactionalEntityManager.save(DatosContactoEmpresa, nuevoDatosContacto);
       }
+      
+      // --- 3. PREPARAR Y GUARDAR LA ENTIDAD PRINCIPAL 'NEGOCIO' ---
 
-      // 6. Prepara los datos para la entidad Negocio
-      const datosParaNegocio = { ...datos };
-      delete datosParaNegocio.datos_contacto;
-
-      // --- DEBUGGING: Añade este console.log para ver los datos antes de crear la entidad Negocio ---
-      console.log("DEBUG: datosParaNegocio antes de crear entidad Negocio:", datosParaNegocio);
-      // -------------------------------------------------------------------------------------------------
-
-      // Crea una nueva instancia de la entidad Negocio con los datos principales
+      // Usamos la interfaz 'NegocioData' para crear un objeto limpio y bien tipado.
+      const datosParaNegocio: NegocioData = {
+        nombre: datos.nombre,
+        ruc: datos.ruc,
+        descripcion: datos.descripcion,
+        activo: datos.activo,
+        id_tipo_empresa: datos.id_tipo_empresa,
+        direccion: datos.direccion,
+        horario_apertura: datos.horario_apertura,
+        horario_cierre: datos.horario_cierre,
+        id_administrador: datos.id_administrador
+      };
+      
+      // Crea la instancia de Negocio. Ahora TypeScript no dará error.
       const nuevoNegocio = transactionalEntityManager.create(Negocio, datosParaNegocio);
-
-      // 7. Vincular DatosContactoEmpresa si se crearon
+      
       if (datosContactoEmpresaGuardados) {
-        nuevoNegocio.id_datos_contacto = datosContactoEmpresaGuardados.id;
         nuevoNegocio.datosContactoEmpresa = datosContactoEmpresaGuardados;
       }
-
-      // 8. Guarda la nueva empresa en la base de datos
-      if (imagenUrl) {
-        nuevoNegocio.urlImagen = imagenUrl;
-      }
-
+      
       const negocioGuardado = await transactionalEntityManager.save(Negocio, nuevoNegocio);
 
+      // --- 4. PROCESAR Y GUARDAR LAS IMÁGENES ASOCIADAS ---
+      if (datos.imagenes && datos.imagenes.length > 0) {
+        // Sube todos los archivos en paralelo a Cloudinary
+        const promesasDeSubida = datos.imagenes.map(file => {
+          const base64String = file.buffer.toString('base64');
+          const dataUri = `data:${file.mimetype};base64,${base64String}`;
+          return cloudinary.uploader.upload(dataUri, { folder: 'negocios' });
+        });
+        const resultadosCloudinary = await Promise.all(promesasDeSubida);
+
+        // Crea una entidad 'ImagenEmpresa' por cada URL devuelta por Cloudinary
+        const nuevasImagenes = resultadosCloudinary.map((resultado, index) => {
+          const nuevaImagen = new ImagenEmpresa();
+          nuevaImagen.url_imagen = resultado.secure_url;
+          nuevaImagen.id_empresa = negocioGuardado.id;
+          nuevaImagen.orden = index + 1;
+          return nuevaImagen;
+        });
+
+        // Guarda todas las nuevas entidades de imágenes en la base de datos
+        await transactionalEntityManager.save(ImagenEmpresa, nuevasImagenes);
+      }
+      
+      // --- 5. DEVOLVER EL NEGOCIO CREADO ---
       return negocioGuardado;
+
     } catch (error: unknown) {
       console.error("Error detallado en crearNegocio (Servicio):", error);
+      // El manejo de errores de TypeORM se mantiene igual
       if (error instanceof QueryFailedError) {
         const driverErrorCode = (error.driverError as any)?.number;
         const errorMessage = (error as Error).message;
 
         if (driverErrorCode === 2627 || driverErrorCode === 2601) {
-          if (errorMessage.includes('ruc') || errorMessage.includes('unique_ruc_constraint_name_if_exists')) {
-            throw new Error("El RUC proporcionado ya está registrado para otra empresa.");
+          if (errorMessage.includes('ruc')) {
+            throw new Error("El RUC proporcionado ya está registrado.");
           }
           if (errorMessage.includes('id_datos_contacto')) {
             throw new Error("Ya existe una empresa vinculada a estos datos de contacto.");
@@ -125,7 +109,7 @@ export const crearNegocio = async (datos: CrearEmpresaDatos): Promise<Negocio> =
           throw new Error("Conflicto de datos: Ya existe una empresa con propiedades similares.");
         }
       }
-      throw new Error((error as Error).message || "No se pudo crear la empresa. Por favor, inténtalo de nuevo más tarde.");
+      throw new Error((error as Error).message || "No se pudo crear la empresa.");
     }
   });
 };
@@ -318,7 +302,8 @@ export const obtenerEmpresasPorAdmin = async (idAdmin: number): Promise<Negocio[
                 },
                 relations: [
                     'datosContactoEmpresa', 
-                    'tipoEmpresa'
+                    'tipoEmpresa',
+                    'imagenes'
                 ],
             });
 

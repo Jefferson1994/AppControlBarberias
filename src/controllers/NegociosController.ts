@@ -18,27 +18,27 @@ export class NegocioController {
 
   static async crear(req: CustomRequest, res: Response) {
     try {
-      // 1. Verifica si el usuario está autenticado y tiene los datos del token
+      // --- 1. Verificaciones de Usuario y Rol (Se mantienen igual) ---
       if (!req.user) {
         return res.status(401).json({ mensaje: "Usuario no autenticado." });
       }
-
-      // 2. Control de Acceso Basado en Rol (RBAC)
       if (req.user.rolNombre !== 'Administrador') {
-        console.warn(`Intento de creación de negocio por usuario no autorizado: ${req.user.correo} (Rol: ${req.user.rolNombre})`);
         return res.status(403).json({ mensaje: "Acceso denegado. Solo los administradores pueden crear negocios." });
       }
 
-      // 3. Tipar el cuerpo de la solicitud directamente con la interfaz
-      //const datosEmpresa: CrearEmpresaDatos = req.body; 
-
-      // Asignar el id_administrador del usuario autenticado
+      // --- 2. Recolección de Datos Adaptada ---
       const datosDelBody = req.body;
-      const archivoImagen = req.file;
+      const archivosImagenes = req.files as Express.Multer.File[]; // Los archivos ahora vienen en req.files (plural)
 
-      // Prepara un objeto de datos limpios para el servicio, convirtiendo tipos
+      // --- 3. Parseo de 'datos_contacto' ---
+      // Como 'datos_contacto' viene como un string JSON desde el FormData, necesitamos parsearlo.
+      if (!datosDelBody.datos_contacto) {
+        throw new Error("Los datos de contacto son obligatorios.");
+      }
+      const datosContactoParseados = JSON.parse(datosDelBody.datos_contacto);
+      
       const datosParaServicio: CrearEmpresaDatos = {
-        // Campos de texto que no necesitan conversión
+        // Campos de texto directos del body
         nombre: datosDelBody.nombre,
         ruc: datosDelBody.ruc,
         descripcion: datosDelBody.descripcion,
@@ -46,40 +46,37 @@ export class NegocioController {
         horario_apertura: datosDelBody.horario_apertura,
         horario_cierre: datosDelBody.horario_cierre,
 
-        // Conversión de strings a números enteros (Integer)
-        id_administrador: req.user.id, // Se toma del token, ya es un número
+        // Campos que necesitan conversión o vienen del token
+        id_administrador: req.user.id,
         id_tipo_empresa: parseInt(datosDelBody.id_tipo_empresa, 10),
         
-        // Objeto anidado de contacto
+        // Objeto anidado que ya fue parseado
         datos_contacto: {
-          telefono_contacto: datosDelBody['datos_contacto[telefono_contacto]'],
-          email_contacto: datosDelBody['datos_contacto[email_contacto]'],
-          ciudad: datosDelBody['datos_contacto[ciudad]'],
-          provincia: datosDelBody['datos_contacto[provincia]'],
-          pais: datosDelBody['datos_contacto[pais]'],
-          // Conversión de strings a números con decimales (Float)
-          latitud: parseFloat(datosDelBody['datos_contacto[latitud]']),
-          longitud: parseFloat(datosDelBody['datos_contacto[longitud]']),
+          telefono_contacto: datosContactoParseados.telefono_contacto,
+          email_contacto: datosContactoParseados.email_contacto,
+          ciudad: datosContactoParseados.ciudad,
+          provincia: datosContactoParseados.provincia,
+          pais: datosContactoParseados.pais,
+          latitud: parseFloat(datosContactoParseados.latitud),
+          longitud: parseFloat(datosContactoParseados.longitud),
         },
 
-        // Asignación del archivo de imagen (si existe)
-        imagen: archivoImagen,
+        // Arreglo de archivos de imagen
+        imagenes: archivosImagenes,
       };
-      //console.log('el nuevo objeto con imagen para gurdar', JSON.stringify(datosParaServicio))
-      //datosEmpresa.id_administrador = req.user.id; 
-
+      
+      // --- 5. Llamada al Servicio (Se mantiene igual) ---
       const nuevaEmpresa = await NegocioService.crearNegocio(datosParaServicio);
 
-      // 4. Envía la respuesta de éxito
+      // --- 6. Respuesta de Éxito (Se mantiene igual) ---
       res.status(201).json({
         mensaje: "Empresa creada correctamente.",
-        empresa: nuevaEmpresa, // 
+        empresa: nuevaEmpresa,
       });
 
     } catch (error: unknown) {
       console.error("Error en NegocioController.crear:", error);
-      // Propagar el mensaje de error específico del servicio
-      res.status(400).json({ mensaje: (error as Error).message || "Error interno del servidor al crear la empresa." });
+      res.status(400).json({ mensaje: (error as Error).message || "Error interno del servidor." });
     }
   }
 
