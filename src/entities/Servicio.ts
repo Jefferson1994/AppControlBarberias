@@ -12,6 +12,7 @@ import { DetalleFactura } from './DetalleFactura'; // Importar DetalleFactura
 import { TipoServicio } from './TipoServicio'; // Importar TipoServicio
 import { DetalleVenta } from './DetalleVenta';
 import { Reserva } from './Reserva';
+import { ImagenServicio } from './ImagenServicio';
 
 @Entity('servicios') // Nombre de la tabla en la base de datos
 export class Servicio {
@@ -68,4 +69,9 @@ export class Servicio {
 
   @OneToMany(() => Reserva, (reserva) => reserva.servicio)
   reservas!: Reserva[];
+
+  @OneToMany(() => ImagenServicio, (imagen) => imagen.servicio, {
+    cascade: true, // Facilita guardar/actualizar imágenes junto con el servicio.
+  })
+  imagenes!: ImagenServicio[];
 }

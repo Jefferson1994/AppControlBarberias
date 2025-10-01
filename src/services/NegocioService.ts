@@ -409,3 +409,23 @@ export const obtenerEstadisticasInventario = async (idEmpresa: number): Promise<
     throw new Error("No se pudieron obtener las estadísticas del inventario.");
   }
 };
+
+export const obtenerTodosTiposEmpresa = async (): Promise<TipoEmpresa[]> => {
+    try {
+        const tipoEmpresaRepository = AppDataSource.getRepository(TipoEmpresa);
+        const todosTiposEmpresa = await tipoEmpresaRepository.find({
+            where: {
+                activo: 1 // <-- AÑADE ESTA LÍNEA PARA FILTRAR
+            },
+            order: {
+                nombre: 'ASC'
+            }
+        })
+        return todosTiposEmpresa;
+
+    } catch (error: unknown) {
+        // 4. Manejar errores inesperados
+        console.error("Error en obtenerTodosTiposEmpresa:", error);
+        throw new Error("No se pudieron obtener los tipos de empresa.");
+    }
+};

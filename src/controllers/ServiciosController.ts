@@ -43,8 +43,11 @@ export class ServicioController {
         return res.status(403).json({ mensaje: "Acceso denegado. Solo los administradores pueden ver los tipos de servicio." });
       }
 
+      const { id_empresa } = req.body;
+      console.log("ID Empresa recibido en el cuerpo:", id_empresa);
+
       // Llama al servicio para obtener los tipos de servicio activos.
-      const tiposServicio = await obtenerTiposServicioActivos();
+      const tiposServicio = await obtenerTiposServicioActivos(id_empresa);
 
       // Si la operación es exitosa, devuelve la lista de tipos de servicio activos.
       res.status(200).json(tiposServicio);

@@ -17,4 +17,6 @@ router.post('/desvincularColaborador', authenticateJWT, NegocioController.desvin
 router.post('/todasEmpresasXAdmin', authenticateJWT, NegocioController.obtenerEmpresasPorAdmin);
 router.post('/empresasXId', authenticateJWT, NegocioController.obtenerEmpresaPorId);
 router.post('/empresaEstadisticas', authenticateJWT, NegocioController.obtenerEstadisticas);
+router.post('/tiposempresa', authenticateJWT, NegocioController.getTiposEmpresasActivos);
+
 export default router;

@@ -345,7 +345,19 @@ export class NegocioController {
     console.error("Error en NegocioController.obtenerEstadisticas:", error);
     res.status(400).json({ mensaje: (error as Error).message || "Error interno del servidor." });
   }
-}
+  }
+
+  static async getTiposEmpresasActivos(req: Request, res: Response) {
+    try {
+      const tiposEmpresa = await NegocioService.obtenerTodosTiposEmpresa();
+      
+      res.status(200).json(tiposEmpresa);
+
+    } catch (error: unknown) {
+      // 3. Si algo falla, devuelve un error 500
+      res.status(500).json({ mensaje: (error as Error).message });
+    }
+  }
 
 
 

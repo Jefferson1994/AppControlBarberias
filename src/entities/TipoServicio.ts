@@ -3,8 +3,10 @@ import {
   PrimaryGeneratedColumn,
   Column,
   OneToMany,
+  ManyToMany
 } from 'typeorm';
 import { Servicio } from './Servicio'; // Importar Servicio para la relación inversa
+import { TipoEmpresa } from './TipoEmpresa';
 
 @Entity('tipos_servicio') // Nombre de la tabla en la base de datos
 export class TipoServicio {
@@ -24,4 +26,7 @@ export class TipoServicio {
   // Relación OneToMany con Servicio: Un TipoServicio puede tener muchos Servicios asociados
   @OneToMany(() => Servicio, (servicio) => servicio.tipoServicio)
   servicios!: Servicio[];
+
+  @ManyToMany(() => TipoEmpresa, (tipoEmpresa) => tipoEmpresa.tiposProductoPermitidos)
+    tiposEmpresa!: TipoEmpresa[];
 }

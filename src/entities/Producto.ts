@@ -12,6 +12,7 @@ import { Negocio } from './Negocio'; // Importar Negocio
 import { DetalleFactura } from './DetalleFactura'; // Importar DetalleFactura
 import { TipoProducto } from './TipoProducto'; // Importar TipoProducto
 import { DetalleVenta } from './DetalleVenta';
+import { ImagenProducto } from './ImagenProducto';
 
 @Entity('productos')
 export class Producto {
@@ -68,4 +69,9 @@ export class Producto {
 
   @OneToMany(() => DetalleVenta, (detalleVenta) => detalleVenta.producto)
     detallesVenta!: DetalleVenta[];
+  
+  @OneToMany(() => ImagenProducto, (imagen) => imagen.producto, {
+    cascade: true, // Facilita guardar/actualizar imágenes junto con el producto.
+  })
+  imagenes!: ImagenProducto[];
 }

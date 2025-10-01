@@ -31,9 +31,9 @@ export class ProductoController {
         console.warn(`Intento de acceso a tipos de producto por usuario no autorizado: ${req.user.correo} (Rol: ${req.user.rolNombre})`);
         return res.status(403).json({ mensaje: "Acceso denegado. Solo los administradores pueden ver los tipos de producto." });
       }
-
+      const { id_empresa } = req.body; 
       // Llama al servicio para obtener los tipos de producto activos.
-      const tiposProducto = await obtenerTiposProductoActivos();
+      const tiposProducto = await obtenerTiposProductoActivos(id_empresa);
 
       // Si la operación es exitosa, devuelve la lista de tipos de producto activos.
       res.status(200).json(tiposProducto);

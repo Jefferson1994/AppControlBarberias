@@ -4,19 +4,34 @@ import { Negocio } from "../entities/Negocio"; // Importar Negocio para validaci
 import { TipoServicio } from "../entities/TipoServicio"; // ¡NUEVO: Importar TipoServicio!
 import { QueryFailedError } from "typeorm";
 import { CrearActualizarServicioDatos } from "../interfaces/servicioDatos"; // Importar la interfaz
+import { TipoEmpresa } from "../entities/TipoEmpresa";
 
 
-export const obtenerTiposServicioActivos = async (): Promise<TipoServicio[]> => {
+export const obtenerTiposServicioActivos = async (idTipoEmpresa: number): Promise<TipoServicio[]> => {
   try {
-    const tipoServicioRepository = AppDataSource.getRepository(TipoServicio);
+     const tipoEmpresaRepository = AppDataSource.getRepository(TipoEmpresa);
 
-    // Busca todos los tipos de servicio donde la propiedad 'activo' sea 0
-    const tiposServicioActivos = await tipoServicioRepository.find({
-      where: { activo: 1 }, 
-      order: { nombre: 'ASC' }, 
+    // 2. Buscamos el tipo de empresa por su ID y cargamos su relación con los servicios.
+    const tipoEmpresa = await tipoEmpresaRepository.findOne({
+      where: { id: idTipoEmpresa },
+      relations: {
+        tiposServiciosPermitidos: true, // Carga el arreglo de servicios permitidos
+      },
     });
 
-    return tiposServicioActivos;
+    // 3. Si no se encuentra el tipo de empresa, devolvemos un arreglo vacío.
+    if (!tipoEmpresa) {
+      console.warn(`No se encontró un Tipo de Empresa con ID: ${idTipoEmpresa}`);
+      return [];
+    }
+
+    // 4. Filtramos los servicios permitidos para devolver solo los que están activos.
+    const tiposActivos = tipoEmpresa.tiposServiciosPermitidos.filter(tipo => tipo.activo === 1);
+
+    // 5. Ordenamos el resultado final alfabéticamente por nombre.
+    tiposActivos.sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+    return tiposActivos;
   } catch (error: unknown) {
     console.error("Error en TipoServicioService.obtenerTiposServicioActivos:", (error as Error).message);
     // Relanza el error para que el controlador o la capa superior puedan manejarlo

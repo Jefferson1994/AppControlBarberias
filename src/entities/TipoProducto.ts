@@ -1,6 +1,7 @@
 // En src/entities/TipoProducto.ts
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany,ManyToMany } from 'typeorm';
 import { Producto } from './Producto'; // Para la relación inversa
+import { TipoEmpresa } from './TipoEmpresa';
 
 @Entity('tipos_producto')
 export class TipoProducto {
@@ -19,4 +20,7 @@ export class TipoProducto {
   // Relación OneToMany: Un TipoProducto puede tener muchos Productos
   @OneToMany(() => Producto, (producto) => producto.tipoProducto)
   productos!: Producto[];
+  
+  @ManyToMany(() => TipoEmpresa, (tipoEmpresa) => tipoEmpresa.tiposProductoPermitidos)
+  tiposEmpresa!: TipoEmpresa[];
 }
