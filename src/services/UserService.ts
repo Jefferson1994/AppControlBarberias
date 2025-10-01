@@ -222,7 +222,7 @@ export const obtenerUsuarioPorIdentificacion = async (numeroIdentificacion: stri
     }
 
     // Verificar si el rol del usuario es 'Colaborador'
-    if (usuario.rol && usuario.rol.nombre === 'Colaborador') {
+    if (usuario.rol && (usuario.rol.nombre === 'Colaborador' || usuario.rol.nombre === 'Administrador')) {
       const usuarioParaRespuesta: Partial<Usuario> = { ...usuario };
       delete (usuarioParaRespuesta as any).contrasena; // No devolver la contraseña
       return usuarioParaRespuesta;

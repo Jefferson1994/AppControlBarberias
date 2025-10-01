@@ -18,5 +18,8 @@ router.post('/todasEmpresasXAdmin', authenticateJWT, NegocioController.obtenerEm
 router.post('/empresasXId', authenticateJWT, NegocioController.obtenerEmpresaPorId);
 router.post('/empresaEstadisticas', authenticateJWT, NegocioController.obtenerEstadisticas);
 router.post('/tiposempresa', authenticateJWT, NegocioController.getTiposEmpresasActivos);
+router.post('/listarColaboradorXEmpresa', authenticateJWT, NegocioController.listarColaboradoresPorEmpresa);
+router.post('/vacacionesColaborador', authenticateJWT, NegocioController.vacacionesColaborador);
+router.post('/IntegrarvacacionesColaborador', authenticateJWT, NegocioController.ReintegrarvacacionesColaborador);
 
 export default router;

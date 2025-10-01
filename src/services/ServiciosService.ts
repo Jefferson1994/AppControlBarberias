@@ -5,6 +5,8 @@ import { TipoServicio } from "../entities/TipoServicio"; // ¡NUEVO: Importar Ti
 import { QueryFailedError } from "typeorm";
 import { CrearActualizarServicioDatos } from "../interfaces/servicioDatos"; // Importar la interfaz
 import { TipoEmpresa } from "../entities/TipoEmpresa";
+import cloudinary from "../config/cloudinary";
+import { ImagenServicio } from "../entities/ImagenServicio";
 
 
 export const obtenerTiposServicioActivos = async (idTipoEmpresa: number): Promise<TipoServicio[]> => {
@@ -39,7 +41,7 @@ export const obtenerTiposServicioActivos = async (idTipoEmpresa: number): Promis
   }
 };
 
-export const crearServicio = async (datos: CrearActualizarServicioDatos): Promise<Servicio> => {
+/*export const crearServicio = async (datos: CrearActualizarServicioDatos): Promise<Servicio> => {
   return await AppDataSource.manager.transaction(async (transactionalEntityManager) => {
     try {
       // 1. Validaciones de campos obligatorios
@@ -92,7 +94,79 @@ export const crearServicio = async (datos: CrearActualizarServicioDatos): Promis
       throw new Error((error as Error).message || "No se pudo crear el servicio. Por favor, inténtalo de nuevo más tarde.");
     }
   });
+};*/
+
+export const crearServicio = async (datos: CrearActualizarServicioDatos): Promise<Servicio> => {
+  return await AppDataSource.manager.transaction(async (transactionalEntityManager) => {
+    try {
+      // --- 1. VALIDACIONES ---
+      if (!datos.nombre) throw new Error("El nombre del servicio es obligatorio.");
+      if (datos.precio === undefined || datos.precio === null) throw new Error("El precio del servicio es obligatorio.");
+      if (!datos.id_negocio) throw new Error("El ID del negocio al que pertenece el servicio es obligatorio.");
+      if (!datos.id_tipo_servicio) throw new Error("El ID del tipo de servicio es obligatorio.");
+
+      // --- 2. Verificar existencia del negocio ---
+      const negocioExistente = await transactionalEntityManager.findOne(Negocio, { where: { id: datos.id_negocio } });
+      if (!negocioExistente) throw new Error(`Negocio con ID ${datos.id_negocio} no encontrado.`);
+
+      // --- 3. Verificar existencia del TipoServicio ---
+      const tipoServicioExistente = await transactionalEntityManager.findOne(TipoServicio, { where: { id: datos.id_tipo_servicio } });
+      if (!tipoServicioExistente) throw new Error(`Tipo de servicio con ID ${datos.id_tipo_servicio} no encontrado.`);
+
+      // --- 4. Preparar entidad Servicio ---
+      const serviceDataToCreate: Partial<Servicio> = {
+        nombre: datos.nombre,
+        precio: datos.precio,
+        precio_descuento: datos.precio_descuento ?? null,
+        porcentaje_descuento: datos.porcentaje_descuento ?? null,
+        id_negocio: datos.id_negocio,
+        id_tipo_servicio: datos.id_tipo_servicio,
+        descripcion: datos.descripcion ?? null,
+        duracion_minutos: datos.duracion_minutos,
+        activo: datos.activo ?? 0,
+        porcentaje_comision_colaborador: datos.porcentaje_comision_colaborador,
+      };
+
+      const nuevoServicio = transactionalEntityManager.create(Servicio, serviceDataToCreate);
+
+      // --- 5. Guardar el servicio ---
+      const servicioGuardado = await transactionalEntityManager.save(Servicio, nuevoServicio);
+
+      // --- 6. Procesar y guardar imágenes si existen ---
+      if (datos.imagenes && datos.imagenes.length > 0) {
+        console.log(`Subiendo ${datos.imagenes.length} imágenes de servicio a Cloudinary...`);
+
+        const promesasDeSubida = datos.imagenes.map(file => {
+          const base64String = file.buffer.toString('base64');
+          const dataUri = `data:${file.mimetype};base64,${base64String}`;
+          // Carpeta específica para servicios
+          return cloudinary.uploader.upload(dataUri, { folder: 'servicios' });
+        });
+
+        const resultadosCloudinary = await Promise.all(promesasDeSubida);
+
+        // Crear entidades de imagen vinculadas al servicio
+        const nuevasImagenes = resultadosCloudinary.map((resultado, index) => {
+          const nuevaImagen = new ImagenServicio(); // Asume que tienes la entidad ImagenServicio
+          nuevaImagen.url_imagen = resultado.secure_url;
+          nuevaImagen.orden = index + 1;
+          nuevaImagen.servicio = servicioGuardado; 
+          return nuevaImagen;
+        });
+
+        await transactionalEntityManager.save(ImagenServicio, nuevasImagenes);
+        console.log('Imágenes de servicio guardadas y vinculadas.');
+      }
+
+      return servicioGuardado;
+
+    } catch (error: unknown) {
+      console.error("Error en ServicioService.crearServicio:", error);
+      throw new Error((error as Error).message || "No se pudo crear el servicio.");
+    }
+  });
 };
+
 
 
 
@@ -100,8 +174,8 @@ export const obtenerServiciosPorNegocio = async (idNegocio: number): Promise<Ser
   try {
     const servicioRepository = AppDataSource.getRepository(Servicio);
     const servicios = await servicioRepository.find({
-      where: { id_negocio: idNegocio, activo: 1 }, // Filtrar por negocio Y por activo = 0
-      relations: ['tipoServicio'], // ¡NUEVO: Cargar la relación con el tipo de servicio!
+      where: { id_negocio: idNegocio, activo: 1 }, // esta activo
+      relations: ['tipoServicio', 'imagenes'], // ralaciones
       order: { nombre: 'ASC' }, // Ordenar por nombre para mejor visualización
     });
     return servicios;

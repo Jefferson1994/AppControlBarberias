@@ -48,7 +48,7 @@ export class ProductoController {
     }
   }
 
-  static async crear(req: CustomRequest, res: Response) {
+  /*static async crear(req: CustomRequest, res: Response) {
     try {
       // 1. Verifica si el usuario está autenticado y tiene los datos del token
       if (!req.user) {
@@ -80,7 +80,51 @@ export class ProductoController {
       // El servicio ya lanza errores específicos, los retransmitimos con un estado 400 por ser errores de cliente/negocio.
       res.status(400).json({ mensaje: (error as Error).message || "Error interno del servidor al crear el producto." });
     }
+  }*/
+  
+  static async crear(req: CustomRequest, res: Response) {
+    try {
+      // --- 1. Verificación de usuario y rol ---
+      if (!req.user) {
+        return res.status(401).json({ mensaje: "Usuario no autenticado." });
+      }
+      if (req.user.rolNombre !== 'Administrador') {
+        return res.status(403).json({ mensaje: "Acceso denegado. Solo los administradores pueden crear productos." });
+      }
+
+      // --- 2. Recolección de datos del body y archivos ---
+      const datosDelBody = req.body;
+      const archivosImagenes = req.files as Express.Multer.File[]; // req.files contiene las imágenes
+
+      // --- 3. Preparar datos para el servicio ---
+      const datosParaServicio: CrearActualizarProductoDatos = {
+        nombre: datosDelBody.nombre,
+        descripcion: datosDelBody.descripcion,
+        precio_venta: parseFloat(datosDelBody.precio_venta),
+        precio_compra: parseFloat(datosDelBody.precio_compra),
+        precio_promocion: parseFloat(datosDelBody.precio_promocion),
+        precio_descuento: parseFloat(datosDelBody.precio_descuento),
+        stock_actual: parseInt(datosDelBody.stock_actual, 10),
+        id_negocio: parseInt(datosDelBody.id_negocio, 10),
+        id_tipo_producto: parseInt(datosDelBody.id_tipo_producto, 10),
+        imagenes: archivosImagenes,
+      };
+
+      const nuevoProducto = await crearProducto(datosParaServicio);
+
+      res.status(201).json({
+        mensaje: "Producto creado correctamente.",
+        producto: nuevoProducto,
+      });
+
+    } catch (error: unknown) {
+      console.error("Error en ProductoController.crear:", error);
+      res.status(400).json({
+        mensaje: (error as Error).message || "Error interno del servidor al crear el producto."
+      });
+    }
   }
+
 
   static async actualizar(req: CustomRequest, res: Response) {
     try {

@@ -38,6 +38,9 @@ export class Colaborador {
   @Column({ type: 'bit', default: true, nullable: false }) // CORRECCIÓN: Cambiado a 'bit' para MSSQL
   activo!: boolean;
 
+  @Column({ type: 'bit', default: false, nullable: false }) // CORRECCIÓN: Cambiado a 'bit' para MSSQL
+  vacaciones!: boolean;
+
   // Relaciones
   @ManyToOne(() => Usuario, (usuario) => usuario.empleados)
   @JoinColumn({ name: 'id_usuario' })

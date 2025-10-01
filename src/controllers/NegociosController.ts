@@ -3,7 +3,7 @@ import * as NegocioService from '../services/NegocioService'; // ¡Importa el se
 import { CrearEmpresaDatos } from '../interfaces/crearEmpresaDatos'; 
 import * as ColaboradorService from '../services/ColaboradorService';
 // Importa la interfaz CustomRequest para extender el objeto Request de Express
-interface CustomRequest extends Request {
+interface CustomRequest extends Request  {
   user?: {
     id: number;
     correo: string;
@@ -239,6 +239,96 @@ export class NegocioController {
     }
   }
 
+  static async vacacionesColaborador(req: CustomRequest, res: Response) {
+    console.log("--- Inicio de NegocioController.desvincularColaborador ---");
+    try {
+      // 1. Verificar autenticación y rol del solicitante
+      console.log("Paso 1: Verificando autenticación y rol...");
+      if (!req.user) {
+        return res.status(401).json({ mensaje: "Usuario no autenticado." });
+      }
+      console.log(`Usuario autenticado: ${req.user.correo}, Rol: ${req.user.rolNombre}`);
+      if (req.user.rolNombre !== 'Administrador') {
+        
+        return res.status(403).json({ mensaje: "Acceso denegado. Solo los administradores pueden desvincular colaboradores." });
+      }
+      console.log("Paso 1 Completo: Autenticación y rol verificados.");
+      // 2. Obtener los IDs del negocio y del usuario del cuerpo de la solicitud
+      console.log("Paso 2: Obteniendo IDs del cuerpo de la solicitud...");
+      const { id_negocio, id_usuario } = req.body;
+      // 3. Validaciones básicas de entrada
+
+      if (typeof id_negocio !== 'number' || isNaN(id_negocio)) {
+
+        return res.status(400).json({ mensaje: "El ID del negocio es obligatorio y debe ser un número." });
+      }
+      if (typeof id_usuario !== 'number' || isNaN(id_usuario)) {
+        return res.status(400).json({ mensaje: "El ID del usuario (colaborador) es obligatorio y debe ser un número." });
+      }
+      // 4. Llamar al servicio para desvincular al colaborador
+  
+      const colaboradorDesvinculado = await ColaboradorService.vacacionesColaborador(id_negocio, id_usuario);
+
+      // 5. Enviar respuesta de éxito
+     
+      res.status(200).json({
+        mensaje: "Colaborador enviado a vacaciones exitosamente.",
+        empleado: colaboradorDesvinculado, // Devolver el registro de empleado actualizado
+      });
+      console.log("--- Fin de NegocioController.desvincularColaborador (Éxito) ---");
+
+    } catch (error: unknown) {
+
+      res.status(400).json({ mensaje: (error as Error).message || "Error interno del servidor al desvincular el colaborador." });
+
+    }
+  }
+
+  static async ReintegrarvacacionesColaborador(req: CustomRequest, res: Response) {
+    console.log("--- Inicio de NegocioController.desvincularColaborador ---");
+    try {
+      // 1. Verificar autenticación y rol del solicitante
+      console.log("Paso 1: Verificando autenticación y rol...");
+      if (!req.user) {
+        return res.status(401).json({ mensaje: "Usuario no autenticado." });
+      }
+      console.log(`Usuario autenticado: ${req.user.correo}, Rol: ${req.user.rolNombre}`);
+      if (req.user.rolNombre !== 'Administrador') {
+        
+        return res.status(403).json({ mensaje: "Acceso denegado. Solo los administradores pueden desvincular colaboradores." });
+      }
+      console.log("Paso 1 Completo: Autenticación y rol verificados.");
+      // 2. Obtener los IDs del negocio y del usuario del cuerpo de la solicitud
+      console.log("Paso 2: Obteniendo IDs del cuerpo de la solicitud...");
+      const { id_negocio, id_usuario } = req.body;
+      // 3. Validaciones básicas de entrada
+
+      if (typeof id_negocio !== 'number' || isNaN(id_negocio)) {
+
+        return res.status(400).json({ mensaje: "El ID del negocio es obligatorio y debe ser un número." });
+      }
+      if (typeof id_usuario !== 'number' || isNaN(id_usuario)) {
+        return res.status(400).json({ mensaje: "El ID del usuario (colaborador) es obligatorio y debe ser un número." });
+      }
+      // 4. Llamar al servicio para desvincular al colaborador
+  
+      const colaboradorDesvinculado = await ColaboradorService.ReintegrarvacacionesColaborador(id_negocio, id_usuario);
+
+      // 5. Enviar respuesta de éxito
+     
+      res.status(200).json({
+        mensaje: "Colaborador reintegrado de  vacaciones exitosamente.",
+        empleado: colaboradorDesvinculado, // Devolver el registro de empleado actualizado
+      });
+      console.log("--- Fin de NegocioController.desvincularColaborador (Éxito) ---");
+
+    } catch (error: unknown) {
+
+      res.status(400).json({ mensaje: (error as Error).message || "Error interno del servidor al desvincular el colaborador." });
+
+    }
+  }
+
   static async obtenerEmpresasPorAdmin(req: CustomRequest, res: Response) {
         console.log("--- Inicio de NegocioController.obtenerEmpresasPorAdmin ---");
         try {
@@ -358,6 +448,44 @@ export class NegocioController {
       res.status(500).json({ mensaje: (error as Error).message });
     }
   }
+
+
+  static async listarColaboradoresPorEmpresa(req: CustomRequest, res: Response) {
+    try {
+       if (!req.user) {
+        return res.status(401).json({ mensaje: "Usuario no autenticado." });
+      }
+      if (req.user.rolNombre !== 'Administrador') {
+        console.warn(`Intento de agregar colaborador por usuario no autorizado: ${req.user.correo} (Rol: ${req.user.rolNombre})`);
+        return res.status(403).json({ mensaje: "Acceso denegado. Solo los administradores pueden listar colaboradores." });
+      }
+
+      const { id_negocio } = req.body;
+
+      const colaboradores = await ColaboradorService.TodosColaboradorXEmpresa(id_negocio);
+
+
+      if (colaboradores.length > 0) {
+        return res.status(200).json({
+          mensaje: "Colaboradores del negocio obtenidos exitosamente.",
+          colaboradores: colaboradores,
+        });
+      } else {
+        return res.status(200).json({
+          mensaje: "No se encontraron colaboradores activos para este negocio.",
+          colaboradores: [], 
+        });
+      }
+
+    } catch (error: unknown) {
+      console.error("Error en NegocioController.listarColaboradoresPorEmpresa:", error);
+      res.status(400).json({ mensaje: (error as Error).message || "Error interno del servidor al listar los colaboradores." });
+    }
+  }
+
+  
+
+ 
 
 
 

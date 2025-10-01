@@ -2,11 +2,24 @@ export interface CrearActualizarServicioDatos {
   nombre: string;
   descripcion?: string | null;
   precio: number;
-  precio_descuento?: number | null; // ¡NUEVO CAMPO!: Precio de venta del servicio con descuento
-  porcentaje_descuento?: number | null; // ¡NUEVO CAMPO!: Porcentaje de descuento (entero)
+  precio_descuento?: number | null; 
+  porcentaje_descuento?: number | null; 
   porcentaje_comision_colaborador: number;
-  activo?: number; // Opcional para crear (default en entidad), útil para actualizar
-  id_negocio: number; // Obligatorio para crear, no se actualiza
-  id_tipo_servicio: number; // Obligatorio para crear, actualizable
+  activo?: number; 
+  id_negocio: number; 
+  id_tipo_servicio: number; 
   duracion_minutos: number;
+  imagenes?: Express.Multer.File[];
+}
+
+export interface ServicioData {
+  nombre: string;
+  descripcion?: string | null;
+  precio_compra: number;
+  precio_venta: number;
+  precio_promocion?: number | null;
+  precio_descuento?: number | null;
+  stock_actual?: number; 
+  id_negocio: number; 
+  id_tipo_producto: number; 
 }

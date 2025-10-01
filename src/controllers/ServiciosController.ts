@@ -64,25 +64,39 @@ export class ServicioController {
 
   static async crear(req: CustomRequest, res: Response) {
     try {
-      // 1. Verifica si el usuario está autenticado y tiene los datos del token
+      // --- 1. Verificaciones de usuario y rol ---
       if (!req.user) {
         return res.status(401).json({ mensaje: "Usuario no autenticado." });
       }
 
-      // 2. Control de Acceso Basado en Rol (RBAC)
-      // Solo permite a usuarios con rol 'Administrador' crear servicios.
       if (req.user.rolNombre !== 'Administrador') {
         console.warn(`Intento de creación de servicio por usuario no autorizado: ${req.user.correo} (Rol: ${req.user.rolNombre})`);
         return res.status(403).json({ mensaje: "Acceso denegado. Solo los administradores pueden crear servicios." });
       }
 
-      // 3. Tipar el cuerpo de la solicitud directamente con la interfaz
-      const datosServicio: CrearActualizarServicioDatos = req.body;
+      // --- 2. Recolección de datos y archivos ---
+      const datosDelBody = req.body;
+      const archivosImagenes = req.files as Express.Multer.File[]; // req.files contiene el array de imágenes
 
-      // 4. Llama al servicio para crear el servicio.
-      const nuevoServicio = await crearServicio(datosServicio);
+      // --- 3. Preparar objeto para el servicio ---
+      const datosParaServicio: CrearActualizarServicioDatos = {
+        nombre: datosDelBody.nombre,
+        descripcion: datosDelBody.descripcion,
+        precio: parseFloat(datosDelBody.precio),
+        precio_descuento: datosDelBody.precio_descuento ? parseFloat(datosDelBody.precio_descuento) : null,
+        porcentaje_descuento: datosDelBody.porcentaje_descuento ? parseFloat(datosDelBody.porcentaje_descuento) : null,
+        porcentaje_comision_colaborador: parseFloat(datosDelBody.porcentaje_comision_colaborador),
+        id_negocio: parseInt(datosDelBody.id_negocio, 10),
+        id_tipo_servicio: parseInt(datosDelBody.id_tipo_servicio, 10),
+        duracion_minutos: parseInt(datosDelBody.duracion_minutos, 10),
+        activo: datosDelBody.activo !== undefined ? parseInt(datosDelBody.activo, 10) : 0,
+        imagenes: archivosImagenes, // Asignamos las imágenes directamente
+      };
 
-      // 5. Envía la respuesta de éxito
+      // --- 4. Llamada al servicio ---
+      const nuevoServicio = await crearServicio(datosParaServicio);
+
+      // --- 5. Respuesta de éxito ---
       res.status(201).json({
         mensaje: "Servicio creado correctamente.",
         servicio: nuevoServicio,
@@ -93,6 +107,7 @@ export class ServicioController {
       res.status(400).json({ mensaje: (error as Error).message || "Error interno del servidor al crear el servicio." });
     }
   }
+
 
   
   static async actualizar(req: CustomRequest, res: Response) {
