@@ -156,6 +156,8 @@ export const abrirCaja = async (datos: AbrirCajaDatos): Promise<Caja> => {
   });
 };
 
+
+
 export const cerrarCaja = async (datos: CerrarCajaDatos): Promise<Caja> => {
   return await AppDataSource.manager.transaction(async (transactionalEntityManager) => {
     try {
@@ -995,4 +997,7 @@ export const procesarVenta = async (datosVenta: RegistrarVenta): Promise<{
     }
   });
 };
+
+
+
 

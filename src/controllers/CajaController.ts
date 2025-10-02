@@ -63,26 +63,20 @@ export class CajaController {
     }
   }
 
-   static async cerrarCaja(req: CustomRequest, res: Response) {
+  static async cerrarCaja(req: CustomRequest, res: Response) {
     try {
       // 1. Verificar autenticación del usuario
       if (!req.user) {
         return res.status(401).json({ mensaje: "Usuario no autenticado." });
       }
 
-      // 2. Control de Acceso Basado en Rol (RBAC)
-      // Solo un Colaborador puede cerrar su propia caja o, potencialmente, un Administrador
-      // Para este ejemplo, solo permitimos al 'Colaborador' cerrar cajas.
-      // Puedes ajustar esta lógica si otros roles (ej. 'Administrador') también pueden cerrar cajas.
       if (req.user.rolNombre !== 'Colaborador') {
         console.warn(`Intento de cerrar caja por usuario no autorizado: ${req.user.correo} (Rol: ${req.user.rolNombre})`);
         return res.status(403).json({ mensaje: "Acceso denegado. Solo los colaboradores pueden cerrar cajas." });
       }
 
-      // 3. Obtener el ID del colaborador del token JWT
       const id_colaborador = req.user.id; // Asumiendo que el ID del usuario es el ID del colaborador
 
-      // 4. Obtener los datos del cuerpo de la solicitud
       const { id_caja, total_final_efectivo, observaciones, id_negocio } = req.body;
 
       // 5. Validaciones para asegurar que id_caja y total_final_efectivo sean válidos
@@ -97,7 +91,6 @@ export class CajaController {
       }
 
 
-      // 6. Preparar los datos para el servicio
       const datosCerrarCaja: CerrarCajaDatos = {
         id_caja: id_caja,
         id_colaborador: id_colaborador,
@@ -216,7 +209,7 @@ export class CajaController {
 
       // 2. Control de Acceso Basado en Rol (RBAC)
       // Asumiendo que solo los colaboradores pueden procesar ventas.
-      if (req.user.rolNombre !== 'Colaborador') {
+      if (req.user.rolNombre == 'Cliente') {
         console.warn(`Intento de procesar venta por usuario no autorizado: ${req.user.correo} (Rol: ${req.user.rolNombre})`);
         return res.status(403).json({ mensaje: "Acceso denegado. Solo los colaboradores pueden procesar ventas." });
       }
@@ -266,6 +259,8 @@ export class CajaController {
       res.status(400).json({ mensaje: (error as Error).message || "Error interno del servidor al procesar la venta." });
     }
   }
+
+ 
 
   
 }

@@ -10,6 +10,8 @@ router.post('/cajaXColaborador', authenticateJWT, CajaController.obtenerCajaActi
 router.post('/movimientoXCaja', authenticateJWT, CajaController.registrarMovimientoCaja);
 router.post('/procesarVenta', authenticateJWT, CajaController.procesarVenta);
 router.post('/cerrarCaja', authenticateJWT, CajaController.cerrarCaja);
+
+
 //router.post('/transaccionCaja', authenticateJWT, CajaController.desvincularColaborador);
 //router.post('/cerrarCaja', authenticateJWT, CajaController.desvincularColaborador);
 

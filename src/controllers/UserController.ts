@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { crearUsuario, obtenerLoginPorMail, obtenerRolesActivos, obtenerUsuarioPorIdentificacion } from '../services/UserService'; // Importa tus funciones de servicio
+import { crearUsuario, obtenerLoginPorMail, obtenerRolesActivos, obtenerUsuarioPorIdentificacion,obtenerNegociosPorUsuario } from '../services/UserService'; // Importa tus funciones de servicio
 import { AppDataSource } from '../config/data-source'; // Asegúrate de importar AppDataSource
 import { Usuario } from '../entities/Usuario'; // Asegúrate de importar la entidad Usuario
 
@@ -125,7 +125,6 @@ export class UserController {
   
  static async obtenerPorCedula(req: CustomRequest, res: Response) {
     try {
-      // 1. Verificar autenticación y rol del solicitante (solo administradores pueden buscar colaboradores)
       if (!req.user) { // CORREGIDO: Acceso a req.user para verificar autenticación
         return res.status(401).json({ mensaje: "Usuario no autenticado." });
       }
@@ -134,14 +133,12 @@ export class UserController {
         return res.status(403).json({ mensaje: "Acceso denegado. Solo los administradores pueden buscar colaboradores." });
       }
 
-      // 2. Obtener el número de identificación DEL CUERPO DE LA SOLICITUD
       const { cedula } = req.body;
 
       if (!cedula) {
         return res.status(400).json({ mensaje: "El campo 'cedula' es obligatorio en el cuerpo de la solicitud para la búsqueda." });
       }
 
-      // 3. Llamar al servicio para buscar el usuario por identificación
       const colaboradorEncontrado = await obtenerUsuarioPorIdentificacion(cedula);
 
       if (colaboradorEncontrado) {
@@ -160,5 +157,35 @@ export class UserController {
       res.status(500).json({ mensaje: "Error interno del servidor al buscar colaborador por identificación.", error: (error as Error).message });
     }
   }
+
+  static async obtenerMisNegociosVinculados(req: CustomRequest, res: Response) {
+      try {
+  
+          if (!req.user) {
+          return res.status(401).json({ mensaje: "Usuario no autenticado." });
+        }
+  
+        if (req.user.rolNombre == 'Cliente') {
+          console.warn(`Intento un cliente traer datos de empresas no autorizado: ${req.user.correo} (Rol: ${req.user.rolNombre})`);
+          return res.status(403).json({ mensaje: "Acceso denegado. Solo los colaboradores pueden traer las empresas." });
+        }
+  
+        const idUsuario = req.user.id;
+  
+        if (!idUsuario) {
+          return res.status(403).json({ mensaje: "Token inválido o no contiene la información del usuario." });
+        }
+  
+        const negocios = await obtenerNegociosPorUsuario(idUsuario);
+        res.status(200).json({
+          mensaje: "Negocios vinculados obtenidos exitosamente.",
+          negocios: negocios,
+        });
+  
+      } catch (error: unknown) {
+  
+      }
+    }
+  
 
 }

@@ -9,6 +9,8 @@ import * as dotenv from 'dotenv';
 import * as jwt from 'jsonwebtoken'; // Importar jsonwebtoken
 import { sendEmail, generateOtp,prepareOtpVerificationEmail } from './EmailService'; // Importar el EmailService
 import { Cliente } from "../entities/Cliente";
+import { Colaborador } from "../entities/Colaborador";
+import { Negocio } from "../entities/Negocio";
 
 const usuarioRepository = AppDataSource.getRepository(Usuario);
 const JWT_SECRET = process.env.NODE_ENV === 'development'
@@ -235,3 +237,27 @@ export const obtenerUsuarioPorIdentificacion = async (numeroIdentificacion: stri
     throw new Error("Ocurrió un error al buscar el usuario por identificación.");
   }
 };
+
+export const obtenerNegociosPorUsuario = async (idUsuario: number): Promise<Negocio[]> => {
+  try {
+    const colaboradorRepository = AppDataSource.getRepository(Colaborador);
+
+    const vinculos = await colaboradorRepository.find({
+      where: {
+        id_usuario: idUsuario,
+        activo: true 
+      },
+      relations: {
+        negocio: true 
+      }
+    });
+
+    const negocios = vinculos.map(vinculo => vinculo.negocio);
+
+    return negocios;
+
+  } catch (error) {
+    console.error("Error al obtener los negocios por usuario:", error);
+    throw new Error("No se pudieron obtener los negocios asociados al usuario.");
+  }
+}

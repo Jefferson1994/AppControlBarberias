@@ -8,6 +8,7 @@ router.post("/users", UserController.crear);
 router.post("/login", UserController.LoginPorMail);
 router.post("/rol", UserController.RolesActivos);
 router.post('/buscar-por-cedula', authenticateJWT, UserController.obtenerPorCedula);
+router.post('/empresasVinculadas', authenticateJWT, UserController.obtenerMisNegociosVinculados);
 //router.post("/userId", UserController.obtenerPorId);
 
 
