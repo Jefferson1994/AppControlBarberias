@@ -23,8 +23,8 @@ export class CajaController {
       }
 
       // 2. Control de Acceso Basado en Rol (RBAC)
-      
-      if (req.user.rolNombre !== 'Colaborador') {
+      console.log(`Usuario autenticado: ${req.user.correo} (Rol: ${req.user.rolNombre})`);
+      if (req.user.rolNombre == 'Cliente') {
         console.warn(`Intento de abrir caja por usuario no autorizado: ${req.user.correo} (Rol: ${req.user.rolNombre})`);
         return res.status(403).json({ mensaje: "Acceso denegado. Solo los colaboradores pueden abrir cajas." });
       }
