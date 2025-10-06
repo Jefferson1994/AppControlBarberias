@@ -429,3 +429,63 @@ export const obtenerTodosTiposEmpresa = async (): Promise<TipoEmpresa[]> => {
         throw new Error("No se pudieron obtener los tipos de empresa.");
     }
 };
+
+
+// NOTA: consultas del cliente a las empresas cercanas se manejan en otro servicio (BusquedaService)
+
+export const obtenerEmpresasCercanas = async (lat: number, lng: number, radioKm: number): Promise<Negocio[]> => {
+  if (typeof lat !== 'number' || typeof lng !== 'number' || typeof radioKm !== 'number') {
+    throw new Error("Latitud, longitud y radio deben ser números válidos.");
+  }
+
+  // Fórmula Haversine para usarla en el Query Builder
+  const haversineFormula = `
+    (6371 * acos(
+      cos(radians(:lat)) * cos(radians(dce.latitud)) *
+      cos(radians(dce.longitud) - radians(:lng)) +
+      sin(radians(:lat)) * sin(radians(dce.latitud))
+    ))
+  `;
+
+  console.log(`Buscando empresas cercanasssssssssss a (lat: ${lat}, lng: ${lng}) en un radio de ${radioKm}km.`);
+
+  return await AppDataSource.manager.transaction(async (transactionalEntityManager) => {
+    try {
+      const query = transactionalEntityManager.createQueryBuilder(Negocio, 'negocio');
+
+      query.innerJoinAndSelect('negocio.datosContactoEmpresa', 'dce');
+      
+      query.innerJoinAndSelect('negocio.tipoEmpresa', 'tipoEmpresa');
+      query.innerJoinAndSelect('negocio.imagenes', 'imagenes');
+
+      query.addSelect(haversineFormula, 'distancia_km');
+      query.where('negocio.activo = :activo', { activo: 1 });
+      query.andWhere('dce.latitud IS NOT NULL');
+      query.andWhere('dce.longitud IS NOT NULL');
+
+      query.andWhere(`${haversineFormula} < :radioKm`);
+
+      query.orderBy('distancia_km', 'ASC');
+
+      // 7. Pasar todos los parámetros a la consulta de forma segura
+      query.setParameters({
+        lat: lat,
+        lng: lng,
+        radioKm: radioKm,
+        activo: 1, 
+      });
+
+      // 8. Ejecutar la consulta y obtener las entidades
+      const empresas = await query.getMany();
+      console.log(`Empresas encontradas: ${empresas.length}`);
+      
+      return empresas;
+
+    } catch (error) {
+      console.error(`Error detallado en obtenerEmpresasCercanas (Servicio):`, error);
+      // Re-lanzar un error genérico para que lo maneje el controlador
+      throw new Error("No se pudo obtener la lista de empresas cercanas.");
+    }
+  });
+};
+

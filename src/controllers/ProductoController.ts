@@ -4,6 +4,7 @@ import { crearProducto } from '../services/ProductoService';
 import { CrearActualizarProductoDatos } from '../interfaces/productosDatos';
 import { obtenerProductosPorNegocio } from '../services/NegocioService';
 import { obtenerProductoPorId } from '../services/NegocioService';
+import { obtenerEmpresasCercanas } from '../services/NegocioService';
 // Interfaz extendida para Request para incluir la información del usuario del token JWT
 interface CustomRequest extends Request {
   user?: {
@@ -48,40 +49,7 @@ export class ProductoController {
     }
   }
 
-  /*static async crear(req: CustomRequest, res: Response) {
-    try {
-      // 1. Verifica si el usuario está autenticado y tiene los datos del token
-      if (!req.user) {
-        return res.status(401).json({ mensaje: "Usuario no autenticado." });
-      }
 
-      // 2. Control de Acceso Basado en Rol (RBAC)
-      // Solo permite a usuarios con rol 'Administrador' crear productos.
-      if (req.user.rolNombre !== 'Administrador') {
-        console.warn(`Intento de creación de producto por usuario no autorizado: ${req.user.correo} (Rol: ${req.user.rolNombre})`);
-        return res.status(403).json({ mensaje: "Acceso denegado. Solo los administradores pueden crear productos." });
-      }
-
-      // 3. Tipar el cuerpo de la solicitud directamente con la interfaz
-      // Los datos de id_empresa y id_tipo_producto se esperan en el body.
-      const datosProducto: CrearActualizarProductoDatos = req.body; 
-
-      // 4. Llama al servicio para crear el producto.
-      const nuevoProducto = await crearProducto(datosProducto);
-
-      // 5. Envía la respuesta de éxito
-      res.status(201).json({
-        mensaje: "Producto creado correctamente.",
-        producto: nuevoProducto,
-      });
-
-    } catch (error: unknown) {
-      console.error("Error en ProductoController.crear:", error);
-      // El servicio ya lanza errores específicos, los retransmitimos con un estado 400 por ser errores de cliente/negocio.
-      res.status(400).json({ mensaje: (error as Error).message || "Error interno del servidor al crear el producto." });
-    }
-  }*/
-  
   static async crear(req: CustomRequest, res: Response) {
     try {
       // --- 1. Verificación de usuario y rol ---
@@ -235,7 +203,7 @@ export class ProductoController {
   }
 
 
-   static async obtenerPorId(req: CustomRequest, res: Response) { // ¡MODIFICADO! Ya no espera parámetros en URL
+  static async obtenerPorId(req: CustomRequest, res: Response) { // ¡MODIFICADO! Ya no espera parámetros en URL
     try {
       if (!req.user) {
         return res.status(401).json({ mensaje: "Usuario no autenticado." });
@@ -267,4 +235,9 @@ export class ProductoController {
       res.status(500).json({ mensaje: (error as Error).message || "Error interno del servidor al obtener el producto." });
     }
   }
+
+  
+
+
+
 }

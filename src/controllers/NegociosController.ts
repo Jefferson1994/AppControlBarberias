@@ -483,6 +483,50 @@ export class NegocioController {
     }
   }
 
+
+  static async obtenerEmpresasCercanas(req: CustomRequest, res: Response) {
+    console.log("--- Inicio de NegocioController.obtenerCercanas ---");
+    try {
+      // 1. Autenticación: Verificar que el usuario está logueado
+      if (!req.user) {
+        return res.status(401).json({ mensaje: "Usuario no autenticado." });
+      }
+      console.log(`Usuario autenticado: ${req.user.correo}, Rol: ${req.user.rolNombre}`);
+
+      const { lat, lng, radio } = req.body;
+      console.log(`Parámetros recibidos en body: lat=${lat}, lng=${lng}, radio=${radio}`);
+
+      const latitud = parseFloat(lat);
+      const longitud = parseFloat(lng);
+      const radioBusqueda = radio !== undefined ? parseFloat(radio) : 150;
+
+      if (isNaN(latitud)) {
+        return res.status(400).json({ mensaje: "El parámetro 'lat' (latitud) no es un número válido." });
+      }
+      if (isNaN(longitud)) {
+        return res.status(400).json({ mensaje: "El parámetro 'lng' (longitud) no es un número válido." });
+      }
+      if (isNaN(radioBusqueda)) {
+        return res.status(400).json({ mensaje: "El parámetro 'radio' no es un número válido." });
+      }
+      
+      console.log(`Buscando empresas cercanas a (lat: ${latitud}, lng: ${longitud}) en un radio de ${radioBusqueda}km.`);
+
+      const empresas = await NegocioService.obtenerEmpresasCercanas(latitud, longitud, radioBusqueda);
+
+      res.status(200).json({
+        mensaje: "Empresas cercanas obtenidas exitosamente.",
+        empresa: empresas, 
+      });
+
+    } catch (error: unknown) {
+      console.error("Error en NegocioController.obtenerCercanas:", error);
+      const errorMessage = (error as Error).message;
+      
+      res.status(500).json({ mensaje: errorMessage || "Error interno del servidor al obtener las empresas." });
+    }
+  }
+
   
 
  

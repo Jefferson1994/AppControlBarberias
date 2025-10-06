@@ -21,5 +21,7 @@ router.post('/tiposempresa', authenticateJWT, NegocioController.getTiposEmpresas
 router.post('/listarColaboradorXEmpresa', authenticateJWT, NegocioController.listarColaboradoresPorEmpresa);
 router.post('/vacacionesColaborador', authenticateJWT, NegocioController.vacacionesColaborador);
 router.post('/IntegrarvacacionesColaborador', authenticateJWT, NegocioController.ReintegrarvacacionesColaborador);
+router.post('/empresasCercanasXCliente', authenticateJWT, NegocioController.obtenerEmpresasCercanas);
+
 
 export default router;

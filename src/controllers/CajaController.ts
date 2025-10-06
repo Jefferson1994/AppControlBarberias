@@ -70,15 +70,15 @@ export class CajaController {
         return res.status(401).json({ mensaje: "Usuario no autenticado." });
       }
 
-      if (req.user.rolNombre !== 'Colaborador') {
+      if (req.user.rolNombre === 'Cliente') {
         console.warn(`Intento de cerrar caja por usuario no autorizado: ${req.user.correo} (Rol: ${req.user.rolNombre})`);
-        return res.status(403).json({ mensaje: "Acceso denegado. Solo los colaboradores pueden cerrar cajas." });
+        return res.status(403).json({ mensaje: "Acceso denegado. Solo los colaboradores o administradores pueden cerrar cajas." });
       }
 
       const id_colaborador = req.user.id; // Asumiendo que el ID del usuario es el ID del colaborador
 
       const { id_caja, total_final_efectivo, observaciones, id_negocio } = req.body;
-
+      console.log("Datos recibidos para cerrar caja:", { id_caja, total_final_efectivo, observaciones, id_negocio }); 
       // 5. Validaciones para asegurar que id_caja y total_final_efectivo sean válidos
       if (typeof id_caja !== 'number' || isNaN(id_caja)) {
         return res.status(400).json({ mensaje: "El ID de la caja es obligatorio y debe ser un número válido." });

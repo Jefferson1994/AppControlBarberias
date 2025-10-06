@@ -12,7 +12,4 @@ router.post('/procesarVenta', authenticateJWT, CajaController.procesarVenta);
 router.post('/cerrarCaja', authenticateJWT, CajaController.cerrarCaja);
 
 
-//router.post('/transaccionCaja', authenticateJWT, CajaController.desvincularColaborador);
-//router.post('/cerrarCaja', authenticateJWT, CajaController.desvincularColaborador);
-
 export default router;

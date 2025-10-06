@@ -126,4 +126,6 @@ export class Negocio {
     cascade: true,
   })
   imagenes!: ImagenEmpresa[];
+
+  distancia_km?: number; // Propiedad adicional para almacenar la distancia en kilómetros (no mapeada a la base de datos)
 }
