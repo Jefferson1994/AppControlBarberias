@@ -3,6 +3,7 @@ import {
   PrimaryGeneratedColumn,
   Column,
   OneToMany,
+  CreateDateColumn,
 } from 'typeorm';
 import { Usuario } from './Usuario'; // Importar Usuario para la relación
 
@@ -20,6 +21,11 @@ export class Rol {
   // Indica si el rol está activo (0) o inactivo (1), según tu convención.
   @Column({ type: 'int', default: 0, nullable: false })
   activo!: number;
+
+  @Column({ type: 'int', default: 1, nullable: false })
+  visible_registro!: number;
+
+ 
 
   // Relación: Un Rol puede tener muchos Usuarios
   @OneToMany(() => Usuario, (usuario) => usuario.rol)

@@ -2,19 +2,10 @@ import { AppDataSource } from "../config/data-source";
 import { Colaborador } from "../entities/Colaborador";
 import { Negocio } from "../entities/Negocio";
 import { Usuario } from "../entities/Usuario";
-import { Rol } from "../entities/Rol"; // Necesario para verificar el rol del usuario
+import { Rol } from "../entities/Rol"; 
+import { json } from "body-parser";
 
-/**
- * Agrega un usuario como colaborador a un negocio específico.
- * Realiza validaciones para asegurar que el negocio y el usuario existen,
- * que el usuario tiene el rol de 'Colaborador', y que no está ya asignado al negocio.
- *
- * @param idNegocio El ID del negocio al que se añadirá el colaborador.
- * @param idUsuario El ID del usuario que se convertirá en colaborador.
- * @returns Una promesa que resuelve con la entidad Colaborador creada o reactivada.
- * @throws {Error} Si el negocio o usuario no existen, el usuario no es 'Colaborador',
- * o si el usuario ya es un colaborador ACTIVO de ese negocio.
- */
+
 export const agregarColaboradorANegocio = async (idNegocio: number, idUsuario: number ,codigo_punto_emision_movil:string): Promise<Colaborador> => {
   return await AppDataSource.manager.transaction(async (transactionalEntityManager) => {
     // 1. Verificar la existencia del Negocio y cargar su nombre
@@ -25,17 +16,19 @@ export const agregarColaboradorANegocio = async (idNegocio: number, idUsuario: n
 
     // 2. Verificar la existencia del Usuario y cargar su rol
     const usuario = await transactionalEntityManager.findOne(Usuario, {
-      where: { id: idUsuario },
-      relations: ['rol'],
+      where: { id: idUsuario }
+      //relations: ['rol'],
     });
     if (!usuario) {
       throw new Error(`Usuario con ID ${idUsuario} no encontrado.`);
     }
 
-    // 3. Verificar que el Usuario tenga el rol de 'Colaborador'
-    if (!usuario.rol || usuario.rol.nombre.trim() == 'Cliente' ) {
-      throw new Error(`El usuario con ID ${idUsuario} no tiene el rol de 'Colaboradorrrr'${usuario.rol.nombre}`);
-    }
+    console.log('el usuario con este id PARA AGREGAR COLABORADRO',JSON.stringify(usuario))
+
+    // 3. Verificar que el Usuario tenga el rol de 'Cliente' aqui es para que recien asiganarle un rol de colaborador
+    //if (usuario.rol.nombre.trim() == 'Cliente' ) {
+    //  throw new Error(`El usuario con ID ${idUsuario} no tiene el rol de 'Colaboradorrrr'${usuario.rol.nombre}`);
+    //}
 
     // 4. VERIFICACIÓN CRÍTICA: Buscar si el usuario ya es un colaborador ACTIVO en CUALQUIER otro negocio.
     // Usamos QueryBuilder para mayor fiabilidad con la condición "diferente de".
@@ -66,6 +59,19 @@ export const agregarColaboradorANegocio = async (idNegocio: number, idUsuario: n
         return colaboradorReactivado;
       }
     }
+
+    const rolColaborador = await transactionalEntityManager.findOne(Rol, { where: { nombre: 'Colaborador', activo:0 } });
+    if (!rolColaborador) {
+        throw new Error("El rol 'Colaborador' no se encuentra en la base de datos.");
+    }
+
+    console.log ('el rol del coloaborador', JSON.stringify(rolColaborador))
+
+    usuario.id_rol = rolColaborador.id;
+
+    console.log('EL USUARIO ACTULIZADO ',JSON.stringify(usuario))
+    await transactionalEntityManager.save(Usuario, usuario);
+
 
     // 6. Crear la nueva instancia de Colaborador (solo si no existía previamente en este negocio)
     const nuevoColaborador = transactionalEntityManager.create(Colaborador, {

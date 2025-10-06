@@ -2,6 +2,8 @@
 import axios from 'axios';
 import NodeCache from 'node-cache';
 import { CiudadanoEstandar } from '../interfaces/ciudadano.interface';
+import { ClienteNoRegistrado } from '../entities/ClienteNoRegistrado';
+import { AppDataSource } from '../config/data-source';
 
 // Las cachés se quedan igual
 const tokenCache = new NodeCache({ stdTTL: 3500 });
@@ -51,8 +53,8 @@ async function getTokenCiudadano(): Promise<string> {
     }
 }
 
-// Función principal, ahora con un tipo de retorno explícito y mejor manejo de errores
-export async function getDatosCiudadano(tipo: string, identificacion: string): Promise<object> {
+
+/*export async function getDatosCiudadano(tipo: string, identificacion: string): Promise<object> {
     const cacheKey = `${tipo}-${identificacion}`;
     const cachedData = cedulaCache.get(cacheKey);
     if (cachedData) {
@@ -73,11 +75,10 @@ export async function getDatosCiudadano(tipo: string, identificacion: string): P
             },
         });
 
-        const resultado = response.data?.DataResult 
-            ? { ok: true, datos: response.data.DataResult }
-            : { ok: false, mensaje: 'No se encontraron datos.' };
-            
-        cedulaCache.set(cacheKey, resultado);
+
+        const datosMapeados = mapperServicioActual(response.data.DataResult, identificacion);
+
+        const resultado = { ok: true, datos: datosMapeados };
         return resultado;
 
     } catch (error) {
@@ -99,10 +100,115 @@ export async function getDatosCiudadano(tipo: string, identificacion: string): P
         // ✅ La corrección clave: Siempre retornamos un objeto con la estructura esperada
         return { ok: false, mensaje: errorMessage };
     }
+}*/
+
+
+export async function getDatosCiudadano(tipo: string, identificacion: string): Promise<object> {
+    const cacheKey = `${tipo}-${identificacion}`;
+    const repo = AppDataSource.getRepository(ClienteNoRegistrado);
+
+    // --- 1. BÚSQUEDA EN CACHÉ EN MEMORIA (Máxima Velocidad) ---
+    const cachedData = cedulaCache.get(cacheKey);
+    if (cachedData) {
+        console.log(`Resultado para ${cacheKey} obtenido desde caché en memoria.`);
+        return cachedData as object;
+    }
+    
+    // --- 2. BÚSQUEDA EN CACHÉ PERSISTENTE (DB - Ahorro de Costos) ---
+    const dbCacheData = await repo.findOne({ 
+        where: { 
+            identificacion: identificacion, 
+            tipoIdentificacion: tipo // Usamos el nombre de la propiedad en la Entidad
+        } 
+    });
+
+    if (dbCacheData) {
+        console.log(`Resultado para ${cacheKey} obtenido desde caché DB.`);
+        
+        // Mapear los datos de la DB al formato de retorno estándar
+        const resultadoDB = { 
+            ok: true, 
+            datos: {
+                identificacion: dbCacheData.identificacion,
+                nombreCompleto: dbCacheData.nombreCompleto,
+                nombres: dbCacheData.nombres,
+                apellidos: dbCacheData.apellidos,
+                fechaDefuncion: dbCacheData.fechaDefuncion,
+            }
+        };
+        
+        // 💡 Actualizar la caché en memoria para las próximas consultas inmediatas
+        cedulaCache.set(cacheKey, resultadoDB);
+        
+        return resultadoDB;
+    }
+
+    // --- 3. LLAMADA A LA API EXTERNA (Último Recurso) ---
+    try {
+        const token = await getTokenCiudadano();
+        if (!token) throw new Error('Token inválido o nulo.');
+
+        const url = `${process.env.CEDULA_API_URL}/Consultar`;
+        const response = await axios.get(url, {
+            params: { tipoidentificacion: tipo, identificacion },
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Ocp-Apim-Subscription-Key': process.env.CEDULA_API_KEY!,
+            },
+        });
+
+        // Verificar si la API encontró datos
+        if (!response.data?.DataResult) {
+            return { ok: false, mensaje: 'No se encontraron datos.' };
+        }
+        
+        // 4. Mapeo y Formato (Usando tu patrón de diseño corregido)
+        const datosMapeados = mapperServicioActual(response.data.DataResult, identificacion);
+
+        const resultado = { ok: true, datos: datosMapeados };
+        
+
+        const nuevoClienteNoReg = repo.create({
+            identificacion: datosMapeados.identificacion,
+            tipoIdentificacion: tipo, // Usamos 'tipo' de la función
+            nombreCompleto: datosMapeados.nombreCompleto,
+            nombres: datosMapeados.nombres,
+            apellidos: datosMapeados.apellidos,
+            fechaDefuncion: datosMapeados.fechaDefuncion,
+        });
+        await repo.save(nuevoClienteNoReg);
+        console.log(`Nuevo ciudadano ${identificacion} insertado en caché persistente.`);
+        
+        // Guardar en caché en memoria
+        cedulaCache.set(cacheKey, resultado);
+        
+        // 6. Devolución Final
+        return resultado;
+
+    } catch (error) {
+        // --- Manejo de errores ---
+        let errorMessage = 'Error al consultar el servicio de ciudadanos.';
+        
+        if (isAxiosError(error)) { 
+            console.error('Error de Axios al consultar datos del ciudadano:', error.response?.data);
+            if (error.response?.status === 404) {
+                errorMessage = 'Identificación inválida o no encontrada.';
+            } else if (error.response?.data?.mensaje) {
+                errorMessage = error.response.data.mensaje;
+            }
+        } else if (error instanceof Error) {
+            console.error('Error inesperado al consultar datos del ciudadano:', error.message);
+            errorMessage = error.message;
+        } else {
+            console.error('Error desconocido:', error);
+        }
+        
+        return { ok: false, mensaje: errorMessage };
+    }
 }
 
 function mapperServicioActual(apiResponse: any,identificacionOriginal: string): CiudadanoEstandar {
-    // Aquí mapeamos los campos del servicio actual al nuestro
+
     return {
         identificacion: identificacionOriginal || '', // Ajusta el nombre del campo si es diferente
         nombreCompleto: apiResponse.nombreCompleto || `${apiResponse.Nombres} ${apiResponse.Apellidos}`,

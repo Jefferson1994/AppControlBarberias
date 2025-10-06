@@ -168,7 +168,8 @@ export const obtenerRolesActivos = async (): Promise<Rol[]> => {
 
     // Busca todos los roles donde la propiedad 'activo' sea 0 (según tu convención para "activo")
     const rolesActivos = await rolRepository.find({
-      where: { activo: 0 },
+      where: { activo: 0 ,
+         visible_registro:0  },
     });
 
     return rolesActivos;
@@ -224,7 +225,7 @@ export const obtenerUsuarioPorIdentificacion = async (numeroIdentificacion: stri
     }
 
     // Verificar si el rol del usuario es 'Colaborador'
-    if (usuario.rol && (usuario.rol.nombre === 'Colaborador' || usuario.rol.nombre === 'Administrador')) {
+    if (usuario.rol && (usuario.rol.nombre === 'Cliente' || usuario.rol.nombre === 'Administrador')) {
       const usuarioParaRespuesta: Partial<Usuario> = { ...usuario };
       delete (usuarioParaRespuesta as any).contrasena; // No devolver la contraseña
       return usuarioParaRespuesta;
