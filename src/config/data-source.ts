@@ -28,6 +28,8 @@ import {ImagenEmpresa } from '../entities/ImagenEmpresa'
 import {ImagenProducto } from '../entities/ImagenProducto'
 import {ImagenServicio } from '../entities/ImagenServicio'
 import { ClienteNoRegistrado } from '../entities/ClienteNoRegistrado';
+import { Suscripcion } from '../entities/suscripciones';
+import { TipoPlan } from '../entities/tipoPlan';
 
 //cadeana local
 /*export const AppDataSource = new DataSource({
@@ -43,7 +45,9 @@ import { ClienteNoRegistrado } from '../entities/ClienteNoRegistrado';
     MetodoPago,MovimientoCaja,Negocio,Producto,Servicio,Rol,Otp,TipoOtp,
     TipoEmpresa,DatosContactoEmpresa,TipoProducto,TipoServicio,TipoMovimientoCaja,
     Venta,DetalleVenta,ParametroSistema,ComprobanteCounter,Reserva,EstadoReserva,
-    ImagenEmpresa,ImagenProducto,ImagenServicio,ClienteNoRegistrado
+    ImagenEmpresa,ImagenProducto,ImagenServicio,ClienteNoRegistrado,Suscripcion,
+    TipoPlan
+
   ],
   options: {
     encrypt: false,
@@ -75,7 +79,7 @@ export const AppDataSource = new DataSource({
     DetalleVenta,ParametroSistema,
     ComprobanteCounter,Reserva,EstadoReserva,
     ImagenEmpresa,ImagenProducto,ImagenServicio,
-    ClienteNoRegistrado
+    ClienteNoRegistrado,Suscripcion,TipoPlan
   ],
   options: {
     encrypt: true, // Activar encriptación para conexiones a SQL Azure, o si tu servidor lo requiere

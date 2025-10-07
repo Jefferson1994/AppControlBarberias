@@ -7,6 +7,7 @@ import {
   JoinColumn,
   CreateDateColumn,
   OneToOne,
+  UpdateDateColumn,
 } from 'typeorm';
 
 import { Usuario } from './Usuario';
@@ -18,7 +19,7 @@ import { Factura } from './Facturas';
 import { TipoEmpresa } from './TipoEmpresa';
 import { DatosContactoEmpresa } from './DatosContactoEmpresa';
 import { ImagenEmpresa } from './ImagenEmpresa';
-
+import { Suscripcion } from './suscripciones';
 @Entity('empresas') 
 export class Negocio {
 
@@ -68,9 +69,17 @@ export class Negocio {
   @Column({ type: 'int', nullable: false })
   id_administrador!: number;
 
-  
+  //fechas de creacion 
+
   @CreateDateColumn({ type: 'datetime2', default: () => 'GETDATE()' })
   creado_en!: Date;
+  
+  @UpdateDateColumn({ type: 'datetime2', nullable: true, name: 'modificado_en' })
+  modificadoEn!: Date | null; 
+
+    // 🛑 NUEVO: Columna para registrar el ID del usuario que realizó la última modificación
+  @Column({ type: 'int', nullable: true, name: 'modificado_por_usuario_id' })
+  modificadoPorUsuarioId!: number | null; 
 
   
 
@@ -122,10 +131,19 @@ export class Negocio {
   @JoinColumn({ name: 'id_datos_contacto' }) 
   datosContactoEmpresa!: DatosContactoEmpresa | null; 
 
+  // relacion con suscripcion 
+  @OneToOne(() => Suscripcion, suscripcion => suscripcion.negocio, {
+    cascade: ['insert', 'update'], 
+    onDelete: 'CASCADE', 
+  })
+  suscripcion!: Suscripcion; 
+
   @OneToMany(() => ImagenEmpresa, (imagen) => imagen.negocio, {
     cascade: true,
   })
   imagenes!: ImagenEmpresa[];
 
   distancia_km?: number; // Propiedad adicional para almacenar la distancia en kilómetros (no mapeada a la base de datos)
+
+ 
 }
