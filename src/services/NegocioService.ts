@@ -8,6 +8,10 @@ import { DatosContactoEmpresa } from "../entities/DatosContactoEmpresa";
 import { Producto } from "../entities/Producto";
 import cloudinary from '../config/cloudinary';
 import { ImagenEmpresa } from "../entities/ImagenEmpresa";
+import { TipoPlan } from "../entities/tipoPlan";
+import { Suscripcion } from "../entities/suscripciones";
+import { EstadoSuscripcion } from "../entities/EstadoSuscripcion";
+import { addMonths } from "date-fns";
 
 /**
  * Crea un nuevo negocio en la base de datos.
@@ -41,6 +45,36 @@ export const crearNegocio = async (datos: CrearEmpresaDatos): Promise<Negocio> =
         const nuevoDatosContacto = transactionalEntityManager.create(DatosContactoEmpresa, datos.datos_contacto);
         datosContactoEmpresaGuardados = await transactionalEntityManager.save(DatosContactoEmpresa, nuevoDatosContacto);
       }
+
+      const tipoPlanRepo = transactionalEntityManager.getRepository(TipoPlan);
+            
+      const planGratuito = await tipoPlanRepo.findOne({ 
+            where: { nombreInterno: 'PFree', activo: 1 } // Asumimos 'PFree' es tu nombre interno
+      });
+
+      if (!planGratuito) {
+        throw new Error("Error de configuración: El Plan Gratuito (PFree) no se encuentra en el catálogo.");
+      }
+      const tiposuscripcion = transactionalEntityManager.getRepository(EstadoSuscripcion);
+      const suscripcionPrueba = await tiposuscripcion.findOne({ 
+            where: { nombreEstado: 'PRUEBA', activo: 1 } // Asumimos 'PFree' es tu nombre interno
+      });
+
+      if (!suscripcionPrueba) {
+        throw new Error("Error de configuración: No se encontro tipo de suscripcion");
+      }
+
+      const fechaInicio = new Date();
+      const fechaVencimiento = addMonths(fechaInicio, planGratuito.duracionMeses);
+
+            // Crea la instancia de Suscripcion
+      const nuevaSuscripcion = transactionalEntityManager.create(Suscripcion, {
+          idTipoPlan: planGratuito.id,              // FK al catálogo de planes
+          idEstadoSuscripcion: suscripcionPrueba.id,             // 4 
+          fechaVencimiento: fechaVencimiento,     // Fecha calculada
+          contadorFacturasActual: 0,              // Inicia en 0
+          
+     });
       
       // --- 3. PREPARAR Y GUARDAR LA ENTIDAD PRINCIPAL 'NEGOCIO' ---
 
@@ -56,6 +90,8 @@ export const crearNegocio = async (datos: CrearEmpresaDatos): Promise<Negocio> =
         horario_cierre: datos.horario_cierre,
         id_administrador: datos.id_administrador
       };
+
+      
       
       // Crea la instancia de Negocio. Ahora TypeScript no dará error.
       const nuevoNegocio = transactionalEntityManager.create(Negocio, datosParaNegocio);
@@ -63,7 +99,8 @@ export const crearNegocio = async (datos: CrearEmpresaDatos): Promise<Negocio> =
       if (datosContactoEmpresaGuardados) {
         nuevoNegocio.datosContactoEmpresa = datosContactoEmpresaGuardados;
       }
-      
+      nuevoNegocio.suscripcion = nuevaSuscripcion; 
+      nuevoNegocio.modificadoPorUsuarioId = datos.id_administrador; 
       const negocioGuardado = await transactionalEntityManager.save(Negocio, nuevoNegocio);
 
       // --- 4. PROCESAR Y GUARDAR LAS IMÁGENES ASOCIADAS ---
