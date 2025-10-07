@@ -1,5 +1,5 @@
 // src/services/ciudadano.service.ts
-import axios from 'axios';
+import axios, { isAxiosError } from 'axios';
 import NodeCache from 'node-cache';
 import { CiudadanoEstandar } from '../interfaces/ciudadano.interface';
 import { ClienteNoRegistrado } from '../entities/ClienteNoRegistrado';
